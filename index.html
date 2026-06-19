@@ -88,7 +88,7 @@
 
 <div class="dm-layer" id="dmLayer"></div>
 <canvas id="dotCanvas"></canvas>
-<audio id="audioEl" src="badapple.m4a" preload="auto" loop></audio>
+<audio id="audioEl" src="badapple.m4a" preload="auto" loop muted></audio>
 
 <div id="karaokeBar"></div>
 
@@ -459,32 +459,33 @@ document.addEventListener('keydown', e => {
 decodeFrames();
 let started = false;
 let audioReady = false;
-let pendingPlay = false;
 function startPlay() {
     if (started) return;
     started = true;
     preloader.classList.add('done');
     isPlaying = true;
+    isMuted = true;
+    audio.muted = true;
     btnPause.textContent = '⏸';
+    btnMute.textContent = '♫';
     frameLoop();
     audio.play().then(() => {
         audioReady = true;
-        pendingPlay = false;
     }).catch(() => {
-        // Browser blocked autoplay — wait for user gesture
-        pendingPlay = true;
         audioReady = true;
     });
 }
-// Resume play on first user gesture if autoplay was blocked
-function resumeOnGesture() {
-    if (pendingPlay && audio.paused) {
-        audio.play().then(() => { pendingPlay = false; }).catch(()=>{});
+// Unmute on first user gesture
+function unmuteOnGesture() {
+    if (audio.muted) {
+        audio.muted = false;
+        isMuted = false;
+        btnMute.textContent = '♪';
     }
 }
-document.addEventListener('click', resumeOnGesture, { once: true });
-document.addEventListener('keydown', resumeOnGesture, { once: true });
-document.addEventListener('touchstart', resumeOnGesture, { once: true });
+document.addEventListener('click', unmuteOnGesture, { once: true });
+document.addEventListener('keydown', unmuteOnGesture, { once: true });
+document.addEventListener('touchstart', unmuteOnGesture, { once: true });
 audio.addEventListener('progress', () => {
     if (audio.buffered.length > 0 && audio.duration)
         preBar.style.width = (audio.buffered.end(audio.buffered.length-1)/audio.duration*100)+'%';
