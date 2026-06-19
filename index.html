@@ -22,8 +22,8 @@
         .pre-err{color:#c0392b;font-size:.8rem;margin-top:1rem}
 
         /* Karaoke lyrics */
-        #karaokeBar{position:fixed;bottom:55px;left:20px;z-index:50;text-align:left;pointer-events:none;max-width:60vw}
-        .karaoke-line{font-size:.75rem;letter-spacing:.08em;line-height:1.8;transition:opacity .3s}
+        #karaokeBar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;text-align:center;pointer-events:none;max-width:80vw}
+        .karaoke-line{font-size:.55rem;letter-spacing:.08em;line-height:1.6;transition:opacity .3s;font-weight:300;text-shadow:0 1px 4px rgba(0,0,0,.8)}
         .karaoke-line.active{opacity:1}
         .karaoke-line.inactive{opacity:0}
         .karaoke-line.waiting{opacity:.25}
@@ -141,177 +141,62 @@ let bgPattern = null;
 // Each line: { t: startTime, words: [{t: wordStartTime, text: "word"}, ...] }
 // Timing from audio frequency analysis — each word timed to vocal onset
 const KARAOKE = [
-    // ===== Verse 1 =====
-    // 流れてく時の中ででも
-    { t: 29.0, words: [
-        {t:29.0,text:"流れてく"},{t:29.5,text:"時の"},{t:30.0,text:"中で"},{t:30.8,text:"でも"}
-    ]},
-    // 気だるさがほらグルグル廻って
-    { t: 32.0, words: [
-        {t:32.0,text:"気だるさが"},{t:33.0,text:"ほら"},{t:33.5,text:"グルグル"},{t:34.5,text:"廻って"}
-    ]},
-    // 私から離れる心も見えないわ
-    { t: 36.0, words: [
-        {t:36.0,text:"私から"},{t:36.8,text:"離れる"},{t:37.8,text:"心も"},{t:38.8,text:"見えないわ"}
-    ]},
-    // そう知らない
-    { t: 40.5, words: [
-        {t:40.5,text:"そう"},{t:41.0,text:"知らない"}
-    ]},
-    // 自分から動くこともなく
-    { t: 43.0, words: [
-        {t:43.0,text:"自分から"},{t:44.0,text:"動くことも"},{t:45.0,text:"なく"}
-    ]},
-    // 時の隙間に流され続けて
-    { t: 46.5, words: [
-        {t:46.5,text:"時の"},{t:47.0,text:"隙間に"},{t:47.8,text:"流され"},{t:48.8,text:"続けて"}
-    ]},
-    // 知らないわ 周りのことなど
-    { t: 50.0, words: [
-        {t:50.0,text:"知らないわ"},{t:51.2,text:"周りの"},{t:52.0,text:"ことなど"}
-    ]},
-    // 私は私それだけ
-    { t: 53.5, words: [
-        {t:53.5,text:"私は"},{t:54.2,text:"私"},{t:55.0,text:"それだけ"}
-    ]},
-    // 夢見てる？何も見てない？
-    { t: 56.5, words: [
-        {t:56.5,text:"夢見てる？"},{t:57.8,text:"何も"},{t:58.5,text:"見てない？"}
-    ]},
-    // 語るも無駄な自分の言葉
-    { t: 60.0, words: [
-        {t:60.0,text:"語るも"},{t:60.8,text:"無駄な"},{t:61.5,text:"自分の"},{t:62.3,text:"言葉"}
-    ]},
-    // 悲しむなんて疲れるだけよ
-    { t: 63.5, words: [
-        {t:63.5,text:"悲しむ"},{t:64.3,text:"なんて"},{t:65.0,text:"疲れる"},{t:65.8,text:"だけよ"}
-    ]},
-    // 何も感じず过ごせばいいの
-    { t: 67.0, words: [
-        {t:67.0,text:"何も"},{t:67.5,text:"感じず"},{t:68.3,text:"过ごせば"},{t:69.3,text:"いいの"}
-    ]},
-    // 戸惑う言葉与えられても
-    { t: 70.5, words: [
-        {t:70.5,text:"戸惑う"},{t:71.3,text:"言葉"},{t:72.0,text:"与えられても"}
-    ]},
-    // 自分の心ただ上の空
-    { t: 74.0, words: [
-        {t:74.0,text:"自分の"},{t:74.8,text:"心"},{t:75.5,text:"ただ"},{t:76.2,text:"上の空"}
-    ]},
-    // もし私から動くのならば
-    { t: 77.5, words: [
-        {t:77.5,text:"もし"},{t:78.0,text:"私から"},{t:78.8,text:"動くの"},{t:79.5,text:"ならば"}
-    ]},
-    // すべて変えるのなら 黒にする
-    { t: 81.0, words: [
-        {t:81.0,text:"すべて"},{t:81.8,text:"変えるのなら"},{t:83.5,text:"黒にする"}
-    ]},
-
-    // ===== Pre-Chorus 1 =====
-    // 夜明けを駆け抜ける この身體
-    { t: 87.0, words: [
-        {t:87.0,text:"夜明けを"},{t:88.0,text:"駆け抜ける"},{t:89.5,text:"この"},{t:90.0,text:"身體"}
-    ]},
-    // It's a BAD APPLE!!
-    { t: 92.0, words: [
-        {t:92.0,text:"It's"},{t:92.5,text:"a"},{t:93.0,text:"BAD"},{t:93.8,text:"APPLE!!"}
-    ]},
-    // 果てるまで Bad Apple!!
-    { t: 97.0, words: [
-        {t:97.0,text:"果てるまで"},{t:98.5,text:"Bad"},{t:99.0,text:"Apple!!"}
-    ]},
-
-    // ===== Pre-Chorus 1 Repeat =====
-    // 夜明けを駆け抜ける この身體
-    { t: 105.0, words: [
-        {t:105.0,text:"夜明けを"},{t:106.0,text:"駆け抜ける"},{t:107.5,text:"この"},{t:108.0,text:"身體"}
-    ]},
-    // It's a BAD APPLE!!
-    { t: 110.0, words: [
-        {t:110.0,text:"It's"},{t:110.5,text:"a"},{t:111.0,text:"BAD"},{t:111.8,text:"APPLE!!"}
-    ]},
-    // 果てるまで Bad Apple!!
-    { t: 115.0, words: [
-        {t:115.0,text:"果てるまで"},{t:116.5,text:"Bad"},{t:117.0,text:"Apple!!"}
-    ]},
-
-    // ===== Verse 2 =====
-    // 誰かが描いた世界の中で
-    { t: 120.0, words: [
-        {t:120.0,text:"誰かが"},{t:120.8,text:"描いた"},{t:121.8,text:"世界の"},{t:122.8,text:"中で"}
-    ]},
-    // 様々な色彩 様々な形
-    { t: 124.0, words: [
-        {t:124.0,text:"様々な"},{t:125.0,text:"色彩"},{t:126.2,text:"様々な"},{t:127.2,text:"形"}
-    ]},
-    // すべてを壊して すべてを変えて
-    { t: 129.0, words: [
-        {t:129.0,text:"すべてを"},{t:130.0,text:"壊して"},{t:131.2,text:"すべてを"},{t:132.2,text:"変えて"}
-    ]},
-    // 私は私で あり続けるの
-    { t: 134.0, words: [
-        {t:134.0,text:"私は"},{t:134.8,text:"私で"},{t:135.8,text:"あり続ける"},{t:137.0,text:"の"}
-    ]},
-
-    // ===== Pre-Chorus 2 =====
-    // 夜明けを駆け抜ける この身體
-    { t: 140.0, words: [
-        {t:140.0,text:"夜明けを"},{t:141.0,text:"駆け抜ける"},{t:142.5,text:"この"},{t:143.0,text:"身體"}
-    ]},
-    // It's a BAD APPLE!!
-    { t: 145.0, words: [
-        {t:145.0,text:"It's"},{t:145.5,text:"a"},{t:146.0,text:"BAD"},{t:146.8,text:"APPLE!!"}
-    ]},
-    // 果てるまで Bad Apple!!
-    { t: 150.0, words: [
-        {t:150.0,text:"果てるまで"},{t:151.5,text:"Bad"},{t:152.0,text:"Apple!!"}
-    ]},
-    // もう止まれない Bad Apple!!
-    { t: 155.0, words: [
-        {t:155.0,text:"もう"},{t:155.8,text:"止まれない"},{t:157.0,text:"Bad"},{t:157.8,text:"Apple!!"}
-    ]},
-
-    // ===== Bridge =====
-    // 掻き消えてく 幻の夢
-    { t: 161.0, words: [
-        {t:161.0,text:"掻き消えてく"},{t:163.0,text:"幻の"},{t:164.0,text:"夢"}
-    ]},
-
-    // ===== Final Pre-Chorus =====
-    // 夜明けを駆け抜ける この身體
-    { t: 167.0, words: [
-        {t:167.0,text:"夜明けを"},{t:168.0,text:"駆け抜ける"},{t:169.5,text:"この"},{t:170.0,text:"身體"}
-    ]},
-    // It's a BAD APPLE!!
-    { t: 172.0, words: [
-        {t:172.0,text:"It's"},{t:172.5,text:"a"},{t:173.0,text:"BAD"},{t:173.8,text:"APPLE!!"}
-    ]},
-    // 果てるまで Bad Apple!!
-    { t: 177.0, words: [
-        {t:177.0,text:"果てるまで"},{t:178.5,text:"Bad"},{t:179.0,text:"Apple!!"}
-    ]},
-    // もう止まれない Bad Apple!!
-    { t: 182.0, words: [
-        {t:182.0,text:"もう"},{t:182.8,text:"止まれない"},{t:184.0,text:"Bad"},{t:184.8,text:"Apple!!"}
-    ]},
-
-    // ===== Outro =====
-    // 夜明けを駆け抜ける この身體
-    { t: 189.0, words: [
-        {t:189.0,text:"夜明けを"},{t:190.0,text:"駆け抜ける"},{t:191.5,text:"この"},{t:192.0,text:"身體"}
-    ]},
-    // It's a BAD APPLE!!
-    { t: 194.0, words: [
-        {t:194.0,text:"It's"},{t:194.5,text:"a"},{t:195.0,text:"BAD"},{t:195.8,text:"APPLE!!"}
-    ]},
-    // 果てるまで Bad Apple!!
-    { t: 199.0, words: [
-        {t:199.0,text:"果てるまで"},{t:200.5,text:"Bad"},{t:201.0,text:"Apple!!"}
-    ]},
-    // もう止まれない Bad Apple!!
-    { t: 204.0, words: [
-        {t:204.0,text:"もう"},{t:204.8,text:"止まれない"},{t:206.0,text:"Bad"},{t:206.8,text:"Apple!!"}
-    ]},
+    { t: 5.0, words: [{t:5.0,text:"Bad Apple!!"}] },
+    { t: 27.0, words: [{t:27.0,text:"流れてく時の中ででも"}] },
+    { t: 32.0, words: [{t:32.0,text:"気だるさがほらグルグル廻って"}] },
+    { t: 35.0, words: [{t:35.0,text:"私から離れる"}] },
+    { t: 38.0, words: [{t:38.0,text:"心も見えないわ"}] },
+    { t: 41.0, words: [{t:41.0,text:"そう知らない"}] },
+    { t: 42.0, words: [{t:42.0,text:"自分から動くこともなく"}] },
+    { t: 46.0, words: [{t:46.0,text:"時の隙間に流され続けて"}] },
+    { t: 50.0, words: [{t:50.0,text:"知らないわ"}] },
+    { t: 51.0, words: [{t:51.0,text:"周りのことなど"}] },
+    { t: 53.0, words: [{t:53.0,text:"私は私それだけ"}] },
+    { t: 57.0, words: [{t:57.0,text:"夢見てる？"}] },
+    { t: 59.0, words: [{t:59.0,text:"何も見てない？"}] },
+    { t: 60.0, words: [{t:60.0,text:"語るも無駄な自分の言葉"}] },
+    { t: 63.0, words: [{t:63.0,text:"悲しむなんて疲れるだけよ"}] },
+    { t: 66.0, words: [{t:66.0,text:"何も感じず过ごせばいいの"}] },
+    { t: 70.0, words: [{t:70.0,text:"戸惑う言葉与えられても"}] },
+    { t: 73.0, words: [{t:73.0,text:"自分の心ただ上の空"}] },
+    { t: 77.0, words: [{t:77.0,text:"もし私から動くのならば"}] },
+    { t: 80.0, words: [{t:80.0,text:"すべて変えるのなら 黒にする"}] },
+    { t: 84.0, words: [{t:84.0,text:"こんな自分に未来はあるの"}] },
+    { t: 87.0, words: [{t:87.0,text:"こんな世界に 私はいるの"}] },
+    { t: 92.0, words: [{t:92.0,text:"今切ないの 今悲しいの"}] },
+    { t: 94.0, words: [{t:94.0,text:"自分のことも解からないまま"}] },
+    { t: 98.0, words: [{t:98.0,text:"歩むことさえ疲れるだけよ"}] },
+    { t: 102.0, words: [{t:102.0,text:"人のことなど知りもしないわ"}] },
+    { t: 105.0, words: [{t:105.0,text:"こんな私も変われるのなら"}] },
+    { t: 108.0, words: [{t:108.0,text:"もし変われるのなら 白になる"}] },
+    { t: 126.0, words: [{t:126.0,text:"流れてく時の中ででも"}] },
+    { t: 130.0, words: [{t:130.0,text:"気だるさがほらグルグル廻って"}] },
+    { t: 133.0, words: [{t:133.0,text:"私から離れる"}] },
+    { t: 135.0, words: [{t:135.0,text:"心も見えないわ"}] },
+    { t: 137.0, words: [{t:137.0,text:"そう知らない"}] },
+    { t: 140.0, words: [{t:140.0,text:"自分から動くこともなく"}] },
+    { t: 144.0, words: [{t:144.0,text:"時の隙間に流され続けて"}] },
+    { t: 147.0, words: [{t:147.0,text:"知らないわ"}] },
+    { t: 148.0, words: [{t:148.0,text:"周りのことなど"}] },
+    { t: 150.0, words: [{t:150.0,text:"私は私それだけ"}] },
+    { t: 154.0, words: [{t:154.0,text:"夢見てる？"}] },
+    { t: 156.0, words: [{t:156.0,text:"何も見てない？"}] },
+    { t: 157.0, words: [{t:157.0,text:"語るも無駄な自分の言葉"}] },
+    { t: 160.0, words: [{t:160.0,text:"悲しむなんて疲れるだけよ"}] },
+    { t: 164.0, words: [{t:164.0,text:"何も感じず过ごせばいいの"}] },
+    { t: 167.0, words: [{t:167.0,text:"戸惑う言葉与えられても"}] },
+    { t: 171.0, words: [{t:171.0,text:"自分の心ただ上の空"}] },
+    { t: 174.0, words: [{t:174.0,text:"もし私から動くのならば"}] },
+    { t: 177.0, words: [{t:177.0,text:"すべて変えるのなら 黒にする"}] },
+    { t: 181.0, words: [{t:181.0,text:"動くのならば 動くのならば"}] },
+    { t: 185.0, words: [{t:185.0,text:"すべて壊すわすべて壊すわ"}] },
+    { t: 189.0, words: [{t:189.0,text:"悲しむならば悲しむならば"}] },
+    { t: 192.0, words: [{t:192.0,text:"私の心 白く変われる"}] },
+    { t: 196.0, words: [{t:196.0,text:"貴方のことも私のことも"}] },
+    { t: 199.0, words: [{t:199.0,text:"全てのこともまだ知らないの"}] },
+    { t: 202.0, words: [{t:202.0,text:"重い目盖を开けたのならば"}] },
+    { t: 206.0, words: [{t:206.0,text:"すべて壊すのなら 黒になれ！"}] },
+    { t: 212.0, words: [{t:212.0,text:"Bad Apple!!"}] },
 ];
 
 // Build karaoke DOM
@@ -343,26 +228,22 @@ function updateKaraoke(time) {
         for (let i = 1; i < karaokeLines.length; i++) karaokeLines[i].div.className = 'karaoke-line inactive';
         return;
     }
+    // Find the current line (only one visible at a time)
+    let currentIdx = -1;
+    for (let i = karaokeLines.length - 1; i >= 0; i--) {
+        if (time >= karaokeLines[i].lineT) { currentIdx = i; break; }
+    }
     for (let i = 0; i < karaokeLines.length; i++) {
         const kl = karaokeLines[i];
-        const nextLineT = (i + 1 < karaokeLines.length) ? karaokeLines[i + 1].lineT : 9999;
-
-        if (time >= kl.lineT - 2 && time < nextLineT + 2) {
-            if (time >= kl.lineT) {
-                kl.div.className = 'karaoke-line active';
-            } else {
-                kl.div.className = 'karaoke-line waiting';
+        if (i === currentIdx) {
+            kl.div.className = 'karaoke-line active';
+            for (const we of kl.wordEls) {
+                we.el.className = time >= we.t ? 'karaoke-word sung' : 'karaoke-word unsung';
             }
         } else {
             kl.div.className = 'karaoke-line inactive';
         }
-
-        for (const we of kl.wordEls) {
-            if (time >= we.t) {
-                we.el.className = 'karaoke-word sung';
-            } else {
-                we.el.className = 'karaoke-word unsung';
-            }
+    }
         }
     }
 }
