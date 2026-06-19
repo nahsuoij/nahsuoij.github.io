@@ -316,12 +316,24 @@ const progressFill = document.getElementById('progressFill');
 const timeLabel = document.getElementById('timeLabel');
 const overlay = document.getElementById('loadingOverlay');
 
-// Touhou-inspired palette: white → sakura pink → purple → deep black
+// Touhou-inspired palette: vivid colored blocks
 const PALETTE = [
-    [255,255,255],[248,238,248],[240,221,240],[232,204,232],
-    [224,187,224],[216,170,216],[208,153,208],[200,136,200],
-    [192,119,192],[184,102,184],[176,85,176],[168,68,168],
-    [160,51,160],[152,34,168],[144,17,176],[136,0,184],
+    [10,10,16],           // 0: almost black
+    [40,15,50],           // 1: deep purple
+    [70,20,80],           // 2
+    [100,25,110],         // 3
+    [130,30,130],         // 4
+    [160,35,140],         // 5
+    [190,40,150],         // 6: sakura
+    [220,60,130],         // 7: pink
+    [240,100,140],        // 8
+    [245,140,160],        // 9
+    [250,170,180],        // 10
+    [255,195,200],        // 11: light sakura
+    [255,215,220],        // 12
+    [255,235,240],        // 13
+    [255,248,250],        // 14
+    [255,255,255],        // 15: white
 ];
 
 // offscreen canvas for reading video pixels
@@ -341,14 +353,13 @@ function renderDots() {
     const H = canvas.height;
     const cellW = W / DOT_COLS;
     const cellH = H / DOT_ROWS;
-    const gap = 1.5;
+    const gap = 2;
 
-    // dark grid background
-    ctx.fillStyle = '#08080c';
+    ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, W, H);
 
-    // draw grid lines (subtle)
-    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    // grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.015)';
     ctx.lineWidth = 0.5;
     for (let c = 0; c <= DOT_COLS; c++) {
         ctx.beginPath();
@@ -363,7 +374,6 @@ function renderDots() {
         ctx.stroke();
     }
 
-    // draw each cell as a filled square with gap (Excel feel)
     for (let row = 0; row < DOT_ROWS; row++) {
         for (let col = 0; col < DOT_COLS; col++) {
             const i = (row * DOT_COLS + col) * 4;
@@ -375,33 +385,27 @@ function renderDots() {
             const w = cellW - gap * 2;
             const h = cellH - gap * 2;
 
-            if (level > 0) {
+            if (level > 1) {
                 const c = PALETTE[level];
 
-                // cell glow
-                if (level > 10) {
-                    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.06)`;
-                    ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+                // outer glow for bright cells
+                if (level > 9) {
+                    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.12)`;
+                    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
                 }
 
-                // the cell itself
-                const radius = Math.min(w, h) * 0.15;
-                ctx.beginPath();
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + w - radius, y);
-                ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-                ctx.lineTo(x + w, y + h - radius);
-                ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-                ctx.lineTo(x + radius, y + h);
-                ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);
-                ctx.closePath();
+                // the colored block
                 ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
-                ctx.fill();
+                ctx.fillRect(x, y, w, h);
+
+                // inner highlight for bright cells
+                if (level > 11) {
+                    ctx.fillStyle = `rgba(255,255,255,0.15)`;
+                    ctx.fillRect(x + 2, y + 2, w * 0.4, h * 0.3);
+                }
             } else {
-                // dark empty cell
-                ctx.fillStyle = 'rgba(255,255,255,0.008)';
+                // dark cell - barely visible
+                ctx.fillStyle = 'rgba(255,255,255,0.006)';
                 ctx.fillRect(x, y, w, h);
             }
         }
