@@ -59,7 +59,6 @@
             background: linear-gradient(90deg, var(--sakura), #fff, var(--sakura));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 40px rgba(231,76,139,0.3);
         }
 
         .site-subtitle {
@@ -82,7 +81,7 @@
             position: absolute;
             white-space: nowrap;
             font-size: 14px;
-            opacity: 0.08;
+            opacity: 0.06;
             color: var(--sakura);
             animation: danmaku-scroll linear infinite;
         }
@@ -283,7 +282,6 @@
             letter-spacing: 0.1em;
         }
 
-        /* === Responsive === */
         @media (max-width: 600px) {
             .site-title { font-size: 1.3rem; }
             .controls { gap: 0.5rem; padding: 0.8rem; }
@@ -292,26 +290,22 @@
 </head>
 <body>
 
-<!-- Ofuda decorations -->
 <div class="ofuda">弾幕</div>
 <div class="ofuda">結界</div>
 <div class="ofuda">夢想</div>
 
-<!-- Danmaku background -->
 <div class="danmaku-layer" id="danmakuLayer"></div>
 
-<!-- Header with Torii -->
 <header class="torii-header">
     <div class="site-title">Bad Apple!!</div>
     <div class="site-subtitle">東方 PROJECT — DOT MATRIX PLAYER</div>
 </header>
 
-<!-- Player -->
 <section class="player-section">
     <div class="player-frame">
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-spinner"></div>
-            <div class="loading-text">幻想郷にロード中...</div>
+            <div class="loading-text" id="loadingText">幻想郷にロード中...</div>
         </div>
         <canvas id="dotCanvas" width="96" height="72"></canvas>
         <div class="controls">
@@ -324,12 +318,11 @@
     </div>
 </section>
 
-<!-- Info -->
 <section class="info-section">
     <div class="info-card">
         <h2>✿ 幻想郷より愛を込めて ✿</h2>
         <p>
-            「Bad Apple!!」は ZUN の東方Projectより。<br>
+            「Bad Apple!!」は ZUN の東方Project より。<br>
             この動画は点陣（ドットマトリクス）で描かれています。<br>
             闘え！幻想郷の巫女たち。
         </p>
@@ -346,25 +339,23 @@
     ⛩ 博麗神社 — nahsuoij.github.io ⛩
 </footer>
 
+<!-- pako for zlib decompression -->
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<script src="badapple_data.js"></script>
 <script>
 // === Configuration ===
 const COLS = 96;
 const ROWS = 72;
-const FPS = 15;
-const DOT_RADIUS = 2.8;
-const GAP = 1;
+const FPS = 10;
 
-// Color palette: light to dark (Sakuya's silver → Marisa's darkness)
+// Color palette: light to dark (Touhou-inspired: sakura pink → deep purple → black)
 const PALETTE = [
-    '#ffffff', '#f0e6f6', '#e0cceb', '#d0b3e0',
-    '#c099d5', '#b080ca', '#a066bf', '#904db4',
-    '#8033a9', '#701a9e', '#600093', '#500080',
-    '#40006c', '#300058', '#200044', '#100030',
+    '#ffffff', '#f8eef8', '#f0ddf0', '#e8cce8',
+    '#e0bbe0', '#d8aad8', '#d099d0', '#c888c8',
+    '#c077c0', '#b866b8', '#b055b0', '#a844a8',
+    '#a033a0', '#9822a8', '#9011b0', '#8800b8',
 ];
 
-// === Frame Data (pre-encoded) ===
-// This will be populated with actual Bad Apple frame data
-// Format: array of frame objects, each frame is array of [run_length, brightness_level]
 let frameData = [];
 let totalFrames = 0;
 let currentFrame = 0;
@@ -374,171 +365,101 @@ let animId = null;
 
 const canvas = document.getElementById('dotCanvas');
 const ctx = canvas.getContext('2d');
-const dotW = canvas.width / COLS;
-const dotH = canvas.height / ROWS;
 
-// === Generate frame data from Bad Apple ===
-// We'll embed a compressed representation of the video
-// Each frame encoded as RLE: [length, value] pairs where value 0-15
+// Decode the RLE+zlib+base64 frame data
+function decodeFrameData() {
+    const overlay = document.getElementById('loadingOverlay');
+    const loadText = document.getElementById('loadingText');
 
-// For now, generate procedural animation that mimics Bad Apple aesthetics
-function generateDemoFrames() {
-    const frames = [];
-    const total = 450; // ~30 seconds at 15fps
+    loadText.textContent = '圧縮データを展開中...';
 
-    for (let f = 0; f < total; f++) {
-        const frame = [];
-        const t = f / total;
-
-        // Create Bad Apple-like silhouettes using mathematical shapes
-        const imgData = new Uint8Array(COLS * ROWS);
-
-        // Background pattern - subtle noise
-        for (let i = 0; i < COLS * ROWS; i++) {
-            imgData[i] = Math.random() < 0.1 ? 1 : 0;
-        }
-
-        // Central figure (silhouette effect)
-        const cx = COLS / 2;
-        const cy = ROWS / 2;
-        const phase = t * Math.PI * 6;
-
-        // Head
-        const headR = 8 + Math.sin(phase) * 1;
-        const headY = cy - 18 + Math.sin(phase * 0.7) * 2;
-        for (let y = 0; y < ROWS; y++) {
-            for (let x = 0; x < COLS; x++) {
-                const dx = x - cx;
-                const dy = y - headY;
-                if (dx * dx + dy * dy < headR * headR) {
-                    imgData[y * COLS + x] = 14;
-                }
-            }
-        }
-
-        // Body
-        const bodyW = 12 + Math.sin(phase * 1.3) * 3;
-        const bodyH = 20;
-        for (let y = 0; y < ROWS; y++) {
-            for (let x = 0; x < COLS; x++) {
-                const dx = (x - cx) / bodyW;
-                const dy = (y - (cy + 5)) / bodyH;
-                if (dx * dx + dy * dy < 1 && y > cy - 10) {
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    imgData[y * COLS + x] = Math.max(imgData[y * COLS + x], Math.floor((1 - dist) * 12));
-                }
-            }
-        }
-
-        // Wings / ribbons (Bad Apple's iconic flowing elements)
-        for (let w = 0; w < 2; w++) {
-            const side = w === 0 ? -1 : 1;
-            for (let i = 0; i < 30; i++) {
-                const t2 = i / 30;
-                const wx = cx + side * (15 + t2 * 25 + Math.sin(phase + t2 * 4) * 5);
-                const wy = cy - 5 + t2 * 30 + Math.sin(phase * 0.8 + t2 * 3) * 8;
-                const bx = Math.round(wx);
-                const by = Math.round(wy);
-                if (bx >= 0 && bx < COLS && by >= 0 && by < ROWS) {
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            const nx = bx + dx;
-                            const ny = by + dy;
-                            if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
-                                const val = Math.floor((1 - t2) * 10) + 2;
-                                imgData[ny * COLS + nx] = Math.max(imgData[ny * COLS + nx], val);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Floating danmaku bullets
-        const numBullets = 5 + Math.floor(t * 10);
-        for (let b = 0; b < numBullets; b++) {
-            const angle = (b / numBullets) * Math.PI * 2 + phase * 0.5;
-            const radius = 20 + Math.sin(phase + b) * 10;
-            const bx = Math.round(cx + Math.cos(angle) * radius);
-            const by = Math.round(cy + Math.sin(angle) * radius);
-            if (bx >= 0 && bx < COLS && by >= 0 && by < ROWS) {
-                imgData[by * COLS + bx] = 15;
-            }
-        }
-
-        // Moon / circle element
-        const moonX = COLS - 20;
-        const moonY = 15;
-        const moonR = 8;
-        for (let y = 0; y < ROWS; y++) {
-            for (let x = 0; x < COLS; x++) {
-                const dx = x - moonX;
-                const dy = y - moonY;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < moonR) {
-                    const val = Math.floor((1 - dist / moonR) * 8) + 5;
-                    imgData[y * COLS + x] = Math.max(imgData[y * COLS + x], val);
-                }
-            }
-        }
-
-        // RLE encode the frame
-        const rle = [];
-        let current = imgData[0];
-        let count = 1;
-        for (let i = 1; i < imgData.length; i++) {
-            if (imgData[i] === current) {
-                count++;
-            } else {
-                rle.push([count, current]);
-                current = imgData[i];
-                count = 1;
-            }
-        }
-        rle.push([count, current]);
-        frames.push(rle);
+    // Decode base64
+    const binary = atob(BADAPPLE_DATA);
+    const compressed = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        compressed[i] = binary.charCodeAt(i);
     }
 
-    return frames;
+    loadText.textContent = 'zlib展開中...';
+
+    // Decompress with zlib
+    const decompressed = pako.inflate(compressed);
+
+    loadText.textContent = 'フレーム解析中...';
+
+    // Parse frames
+    let offset = 0;
+    while (offset < decompressed.length) {
+        // Read 2-byte length prefix (big-endian)
+        const rleLen = (decompressed[offset] << 8) | decompressed[offset + 1];
+        offset += 2;
+
+        const rleData = [];
+        for (let i = 0; i < rleLen; i++) {
+            const count = decompressed[offset + i * 2];
+            const value = decompressed[offset + i * 2 + 1];
+            rleData.push([count, value]);
+        }
+        offset += rleLen * 2;
+
+        frameData.push(rleData);
+    }
+
+    totalFrames = frameData.length;
+    loadText.textContent = `${totalFrames} フレーム読み込み完了`;
 }
 
-// === Render a frame ===
+// Render a frame from RLE data
 function renderFrame(frameRLE) {
-    ctx.fillStyle = '#0a0a12';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const imgData = ctx.createImageData(COLS, ROWS);
+    const pixels = imgData.data;
 
     let idx = 0;
     for (const [length, value] of frameRLE) {
         for (let i = 0; i < length; i++) {
             const col = idx % COLS;
             const row = Math.floor(idx / COLS);
+            const px = (row * COLS + col) * 4;
 
-            if (value > 0) {
-                const colorIdx = Math.min(value, PALETTE.length - 1);
-                const color = PALETTE[colorIdx];
-                const x = col * dotW + dotW / 2;
-                const y = row * dotH + dotH / 2;
-                const r = DOT_RADIUS * (value / 15) * 0.8 + 0.5;
+            // Map 0-15 brightness to palette color
+            const colorIdx = 15 - value; // invert: 0=white, 15=black
+            const hex = PALETTE[Math.min(colorIdx, 15)];
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
 
-                // Glow effect for bright dots
-                if (value > 10) {
-                    ctx.beginPath();
-                    ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-                    ctx.fillStyle = color + '30';
-                    ctx.fill();
-                }
+            pixels[px] = r;
+            pixels[px + 1] = g;
+            pixels[px + 2] = b;
+            pixels[px + 3] = 255;
 
-                ctx.beginPath();
-                ctx.arc(x, y, r, 0, Math.PI * 2);
-                ctx.fillStyle = color;
-                ctx.fill();
-            }
             idx++;
         }
     }
+
+    ctx.putImageData(imgData, 0, 0);
+
+    // Draw dot matrix overlay
+    const dotW = canvas.width / COLS;
+    const dotH = canvas.height / ROWS;
+
+    ctx.globalCompositeOperation = 'multiply';
+    for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+            const x = col * dotW + dotW / 2;
+            const y = row * dotH + dotH / 2;
+            const r = Math.min(dotW, dotH) * 0.4;
+
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            ctx.fill();
+        }
+    }
+    ctx.globalCompositeOperation = 'source-over';
 }
 
-// === Animation Loop ===
+// Animation Loop
 function animate(timestamp) {
     if (!isPlaying) return;
 
@@ -548,7 +469,7 @@ function animate(timestamp) {
         updateUI();
         currentFrame++;
         if (currentFrame >= totalFrames) {
-            currentFrame = 0; // loop
+            currentFrame = 0;
         }
         lastFrameTime = timestamp;
     }
@@ -585,8 +506,8 @@ function updateUI() {
     const pct = (currentFrame / totalFrames) * 100;
     document.getElementById('progressFill').style.width = pct + '%';
 
-    const elapsed = (currentFrame / FPS);
-    const total = (totalFrames / FPS);
+    const elapsed = currentFrame / FPS;
+    const total = totalFrames / FPS;
     document.getElementById('timeLabel').textContent =
         formatTime(elapsed) + ' / ' + formatTime(total);
 }
@@ -597,7 +518,7 @@ function formatTime(s) {
     return m + ':' + (sec < 10 ? '0' : '') + sec;
 }
 
-// === Danmaku Background ===
+// Danmaku Background
 function createDanmaku() {
     const layer = document.getElementById('danmakuLayer');
     const texts = [
@@ -621,27 +542,30 @@ function createDanmaku() {
     }
 }
 
-// === Load & Init ===
-async function init() {
+// Init
+function init() {
     createDanmaku();
 
-    // Show loading
-    const overlay = document.getElementById('loadingOverlay');
-
-    // Generate frames
-    frameData = generateDemoFrames();
-    totalFrames = frameData.length;
+    try {
+        decodeFrameData();
+    } catch (e) {
+        document.getElementById('loadingText').textContent = 'エラー: ' + e.message;
+        console.error(e);
+        return;
+    }
 
     // Render first frame
-    renderFrame(frameData[0]);
-    updateUI();
+    if (frameData.length > 0) {
+        renderFrame(frameData[0]);
+        updateUI();
+    }
 
     // Hide loading
     setTimeout(() => {
-        overlay.classList.add('hidden');
+        document.getElementById('loadingOverlay').classList.add('hidden');
     }, 800);
 
-    // Auto-play after a moment
+    // Auto-play
     setTimeout(() => {
         togglePlay();
     }, 1500);
@@ -663,7 +587,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Start
 window.addEventListener('load', init);
 </script>
 
