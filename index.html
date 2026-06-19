@@ -22,15 +22,15 @@
         .pre-err{color:#c0392b;font-size:.8rem;margin-top:1rem}
 
         /* Karaoke lyrics */
-        #karaokeBar{position:fixed;bottom:55px;left:20px;z-index:50;text-align:left;pointer-events:none;max-width:60vw}
-        .karaoke-line{font-size:.55rem;letter-spacing:.08em;line-height:1.6;transition:opacity .3s;font-weight:300;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+        #karaokeBar{position:fixed;bottom:50px;left:50%;transform:translateX(-50%);z-index:50;text-align:center;pointer-events:none;width:80vw}
+        .karaoke-line{position:absolute;left:0;right:0;font-size:1.1rem;letter-spacing:.12em;line-height:1.6;transition:opacity .4s;font-weight:300;text-shadow:0 2px 8px rgba(0,0,0,.9)}
         .karaoke-line.active{opacity:1}
         .karaoke-line.inactive{opacity:0}
         .karaoke-line.waiting{opacity:.25}
-        .karaoke-line.prelude{opacity:.12}
-        .karaoke-word{display:inline-block;transition:color .12s,text-shadow .12s}
-        .karaoke-word.sung{color:#ffb7c5;text-shadow:0 0 8px rgba(255,183,197,.5)}
-        .karaoke-word.unsung{color:rgba(255,255,255,.2)}
+        .karaoke-line.prelude{opacity:.15}
+        .karaoke-word{display:inline-block;transition:color .15s,text-shadow .15s}
+        .karaoke-word.sung{color:#ffb7c5;text-shadow:0 0 12px rgba(255,183,197,.6)}
+        .karaoke-word.unsung{color:rgba(255,255,255,.3)}
 
         /* Controls */
         #controls{position:fixed;bottom:15px;left:20px;display:flex;align-items:center;gap:12px;z-index:50;opacity:0;transition:opacity .3s}
