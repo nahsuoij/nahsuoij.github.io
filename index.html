@@ -8,44 +8,35 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;700;900&display=swap');
         *{margin:0;padding:0;box-sizing:border-box}
         html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Noto Sans JP',sans-serif;color:#fff}
-
-        /* Canvas */
         #dotCanvas{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#050508}
-
-        /* Hidden video for audio only */
         #audioEl{display:none}
 
-        /* Preloader */
         #preloader{position:fixed;inset:0;background:#050508;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity 1s}
-        #preloader.hidden{opacity:0;pointer-events:none}
+        #preloader.done{opacity:0;pointer-events:none}
         .pre-title{font-size:2.5rem;font-weight:900;letter-spacing:.2em;background:linear-gradient(90deg,#ffb7c5,#fff,#ffb7c5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
         .pre-sub{font-size:.8rem;color:#555;letter-spacing:.4em;margin:.5rem 0 2rem}
         .pre-bar-wrap{width:200px;height:2px;background:#1a1a2e;border-radius:1px;overflow:hidden}
-        .pre-bar{height:100%;width:0%;background:linear-gradient(90deg,#c0392b,#e74c8b);transition:width .3s}
+        .pre-bar{height:100%;width:0%;background:linear-gradient(90deg,#c0392b,#e74c8b)}
         .pre-hint{margin-top:1.5rem;font-size:.7rem;color:#333;letter-spacing:.2em}
+        .pre-err{color:#c0392b;font-size:.8rem;margin-top:1rem}
 
-        /* Lyrics bar */
         #lyricsBar{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);font-size:.85rem;color:rgba(255,183,197,.7);letter-spacing:.1em;z-index:50;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-shadow:0 0 10px rgba(192,57,43,.3)}
-        body:hover #lyricsBar,#lyricsBar.show{opacity:1}
+        body:hover #lyricsBar,.lyrics-show{opacity:1!important}
         @media(hover:none){#lyricsBar{opacity:.9}}
 
-        /* Bottom controls */
         #controls{position:fixed;bottom:15px;left:20px;display:flex;align-items:center;gap:12px;z-index:50;opacity:0;transition:opacity .3s}
         body:hover #controls{opacity:1}
         @media(hover:none){#controls{opacity:.85}}
-
         .ctrl-btn{width:36px;height:36px;border:1.5px solid rgba(192,57,43,.5);border-radius:50%;background:rgba(10,10,16,.5);backdrop-filter:blur(6px);color:#ffb7c5;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;user-select:none}
         .ctrl-btn:hover{background:rgba(192,57,43,.25);transform:scale(1.1)}
 
-        /* Progress / touch bar */
         #touchBar{position:relative;width:200px;height:20px;display:flex;align-items:center;cursor:pointer}
         #touchBar .track{position:absolute;left:0;right:0;height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
         #touchBar .fill{height:100%;background:linear-gradient(90deg,#c0392b,#e74c8b);border-radius:2px;width:0%}
-        #touchBar .thumb{position:absolute;width:12px;height:12px;background:#ffb7c5;border:2px solid #c0392b;border-radius:50%;transform:translate(-50%,-50%);top:50%;left:0%;transition:transform .1s;pointer-events:none}
+        #touchBar .thumb{position:absolute;width:12px;height:12px;background:#ffb7c5;border:2px solid #c0392b;border-radius:50%;transform:translate(-50%,-50%);top:50%;left:0%;pointer-events:none}
         #touchBar:hover .thumb{transform:translate(-50%,-50%) scale(1.3)}
         #timeLabel{font-size:.65rem;color:rgba(255,255,255,.3);margin-left:6px;font-variant-numeric:tabular-nums;min-width:70px}
 
-        /* Right side: block size slider */
         #sizeSlider{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:50;opacity:0;transition:opacity .3s;display:flex;flex-direction:column;align-items:center;gap:8px}
         body:hover #sizeSlider{opacity:1}
         @media(hover:none){#sizeSlider{opacity:.85}}
@@ -54,20 +45,17 @@
         .size-thumb{position:absolute;width:14px;height:14px;background:rgba(192,57,43,.7);border:2px solid #ffb7c5;border-radius:50%;left:50%;transform:translate(-50%,-50%);cursor:grab}
         .size-val{font-size:.6rem;color:rgba(255,255,255,.3)}
 
-        /* Upload button */
         #uploadBtn{position:fixed;top:20px;right:20px;z-index:50;opacity:0;transition:opacity .3s}
         body:hover #uploadBtn{opacity:1}
         @media(hover:none){#uploadBtn{opacity:.85}}
-        .upload-label{display:block;width:36px;height:36px;border:1.5px solid rgba(192,57,43,.5);border-radius:50%;background:rgba(10,10,16,.5);backdrop-filter:blur(6px);color:#ffb7c5;font-size:1rem;cursor:pointer;text-align:center;line-height:36px;transition:all .2s}
+        .upload-label{display:block;width:36px;height:36px;border:1.5px solid rgba(192,57,43,.5);border-radius:50%;background:rgba(10,10,16,.5);backdrop-filter:blur(6px);color:#ffb7c5;font-size:1rem;cursor:pointer;text-align:center;line-height:34px}
         .upload-label:hover{background:rgba(192,57,43,.25);transform:scale(1.1)}
         #fileInput{display:none}
 
-        /* Danmaku */
         .dm-layer{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
         .dm-text{position:absolute;white-space:nowrap;font-size:14px;opacity:.04;color:#ffb7c5;animation:dm-scroll linear infinite}
         @keyframes dm-scroll{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
 
-        /* FS hint */
         #fsHint{position:fixed;bottom:42px;left:20px;font-size:.55rem;color:rgba(255,183,197,.15);letter-spacing:.1em;z-index:50;opacity:0;transition:opacity .3s}
         body:hover #fsHint{opacity:1}
     </style>
@@ -79,6 +67,7 @@
     <div class="pre-sub">東方 PROJECT</div>
     <div class="pre-bar-wrap"><div class="pre-bar" id="preBar"></div></div>
     <div class="pre-hint">幻想郷を準備中...</div>
+    <div class="pre-err" id="preErr"></div>
 </div>
 
 <div class="dm-layer" id="dmLayer"></div>
@@ -88,12 +77,12 @@
 <div id="lyricsBar"></div>
 
 <div id="controls">
-    <button class="ctrl-btn" id="btnPause" title="Pause / Play">⏸</button>
-    <button class="ctrl-btn" id="btnMute" title="Mute / Unmute">♫</button>
+    <button class="ctrl-btn" id="btnPause" title="Pause">⏸</button>
+    <button class="ctrl-btn" id="btnMute" title="Mute">♫</button>
     <div id="touchBar"><div class="track"><div class="fill" id="tFill"></div></div><div class="thumb" id="tThumb"></div></div>
     <span id="timeLabel">0:00 / 0:00</span>
 </div>
-<div id="fsHint">CLICK ANYWHERE → FULLSCREEN &nbsp;|&nbsp; SPACE: pause &nbsp; M: mute</div>
+<div id="fsHint">CLICK → FULLSCREEN &nbsp;|&nbsp; SPACE: pause &nbsp; M: mute</div>
 
 <div id="sizeSlider">
     <span class="size-label">精細度</span>
@@ -102,77 +91,84 @@
 </div>
 
 <div id="uploadBtn">
-    <label class="upload-label" for="fileInput" title="Upload background image">🖼</label>
+    <label class="upload-label" for="fileInput" title="背景画像">🖼</label>
     <input type="file" id="fileInput" accept="image/*">
 </div>
 
 <script src="pako.min.js"></script>
 <script src="frames.js"></script>
 <script>
+try {
 // ============================================================
-// Bad Apple!! — Character Matrix Player
-// ============================================================
-
 const canvas = document.getElementById('dotCanvas');
 const ctx = canvas.getContext('2d');
 const audio = document.getElementById('audioEl');
 const preloader = document.getElementById('preloader');
 const preBar = document.getElementById('preBar');
+const preErr = document.getElementById('preErr');
 const lyricsBar = document.getElementById('lyricsBar');
 
-// State
 let isPlaying = false;
 let isMuted = true;
 let animId = null;
 let dotCols = 48;
 let dotRows = 36;
-let bgImage = null; // uploaded background image
-let bgPattern = null; // canvas pattern from bg image
+let bgPattern = null;
 
-// Bad Apple lyrics — actual song, time-based (seconds)
+// Bad Apple lyrics — real timing (seconds)
 const LYRICS = [
-    [0, "流れてく　時の中ででも"],
-    [5.5, "気だるさが　ほらグルグル回って"],
-    [11.0, "私から　離れる心も"],
-    [16.0, "見えないわ　裸足のまま"],
-    [21.5, "ityEngineを　駆け抜ける　この身体"],
-    [27.0, "It's a BAD APPLE!!"],
-    [32.5, "果てるまで　Bad Apple!!"],
-    [38.0, ""] ,
-    [42.0, "誰かが描いた　世界の中で"],
-    [47.5, "מנוな色彩　מנוな形"],
-    [53.0, "すべてを壊して　すべてを変えて"],
-    [58.5, "私は私で　あり続けるの"],
-    [64.0, ""] ,
-    [68.0, "ityEngineを　駆け抜ける　この身体"],
-    [73.5, "It's a BAD APPLE!!"],
-    [79.0, "果てるまで　Bad Apple!!"],
-    [84.5, "もう止まれない　Bad Apple!!"],
-    [90.0, ""] ,
-    [95.0, "掻き消えてく　幻の夢"],
-    [100.5, "ityEngineを　駆け抜ける　この身体"],
-    [106.0, "It's a BAD APPLE!!"],
-    [111.5, "果てるまで　Bad Apple!!"],
-    [117.0, "もう止まれない　Bad Apple!!"],
-    [123.0, ""],
+    [0,    "流れてく　時の中ででも"],
+    [6.5,  "気だるさが　ほらグルグル回って"],
+    [12.5, "私から　離れる心も"],
+    [18.5, "見えないわ　裸足のまま"],
+    [25.0, "ityEngineを　駆け抜ける　この身体"],
+    [31.0, "It's a BAD APPLE!!"],
+    [37.0, "果てるまで　Bad Apple!!"],
+    [43.0, ""],
+    [46.0, "ityEngineを　駆け抜ける　この身体"],
+    [52.0, "It's a BAD APPLE!!"],
+    [58.0, "果てるまで　Bad Apple!!"],
+    [64.0, ""],
+    [67.0, "誰かが描いた　世界の中で"],
+    [73.0, "מנוな色彩　מנוな形"],
+    [79.0, "すべてを壊して　すべてを変えて"],
+    [85.0, "私は私で　あり続けるの"],
+    [91.0, ""],
+    [94.0, "ityEngineを　駆け抜ける　この身体"],
+    [100.0,"It's a BAD APPLE!!"],
+    [106.0,"果てるまで　Bad Apple!!"],
+    [112.0,"もう止まれない　Bad Apple!!"],
+    [118.0,""],
+    [121.0,"掻き消えてく　幻の夢"],
+    [127.0,"ityEngineを　駆け抜ける　この身体"],
+    [133.0,"It's a BAD APPLE!!"],
+    [139.0,"果てるまで　Bad Apple!!"],
+    [145.0,"もう止まれない　Bad Apple!!"],
+    [151.0,""],
+    [155.0,"ityEngineを　駆け抜ける　この身体"],
+    [161.0,"It's a BAD APPLE!!"],
+    [167.0,"果てるまで　Bad Apple!!"],
+    [173.0,"もう止まれない　Bad Apple!!"],
+    [179.0,""],
 ];
 
-function getCurrentLyrics(timeSec) {
+function getCurrentLyrics(t) {
     let text = "";
-    for (const [t, l] of LYRICS) {
-        if (timeSec >= t) text = l;
-        else break;
+    for (const [st, l] of LYRICS) {
+        if (t >= st) text = l; else break;
     }
     return text;
 }
 
-// Offscreen for reading frame data
-const offscreen = document.createElement('canvas');
-offscreen.width = 48; // source always 48x36
-offscreen.height = 36;
-const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
+// Character colors from frames.js
+const COLORS = {};
+for (const [k, v] of Object.entries(CHAR_COLORS)) COLORS[k] = v;
 
-// ---- Resize ----
+// Offscreen for frame decode
+const off = document.createElement('canvas');
+off.width = 48; off.height = 36;
+const offCtx = off.getContext('2d', { willReadFrequently: true });
+
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -180,14 +176,13 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// ---- Decode frames ----
-let frameData = [];
+// Decode compressed frame data
+let frames = [];
 function decodeFrames() {
-    const binary = atob(FRAME_DATA);
-    const compressed = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) compressed[i] = binary.charCodeAt(i);
+    const bin = atob(FRAME_DATA);
+    const compressed = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) compressed[i] = bin.charCodeAt(i);
     const raw = pako.inflate(compressed);
-
     let offset = 0;
     while (offset < raw.length) {
         const rleLen = (raw[offset] << 8) | raw[offset + 1];
@@ -197,33 +192,34 @@ function decodeFrames() {
             rle.push([raw[offset + i * 2], raw[offset + i * 2 + 1]]);
         }
         offset += rleLen * 2;
-        frameData.push(rle);
+        frames.push(rle);
     }
 }
 
-// ---- Expand RLE to flat grid ----
-function expandFrame(rle) {
+function expandRLE(rle) {
     const grid = new Uint8Array(48 * 36);
     let idx = 0;
-    for (const [count, val] of rle) {
-        for (let i = 0; i < count; i++) grid[idx++] = val;
+    for (let i = 0; i < rle.length; i++) {
+        const count = rle[i][0];
+        const val = rle[i][1];
+        for (let j = 0; j < count; j++) grid[idx++] = val;
     }
     return grid;
 }
 
-// ---- Render ----
-function renderFrame(frameIdx) {
-    const rle = frameData[frameIdx];
-    if (!rle) return;
-    const grid = expandFrame(rle);
+let lastRenderedFrame = -1;
+function renderFrame(fi) {
+    if (fi < 0 || fi >= frames.length) return;
+    if (fi === lastRenderedFrame) return; // skip duplicate
+    lastRenderedFrame = fi;
 
+    const grid = expandRLE(frames[fi]);
     const W = canvas.width;
     const H = canvas.height;
     const cellW = W / dotCols;
     const cellH = H / dotRows;
     const gap = Math.max(1, Math.min(cellW, cellH) * 0.08);
 
-    // Background
     if (bgPattern) {
         ctx.fillStyle = bgPattern;
     } else {
@@ -241,36 +237,33 @@ function renderFrame(frameIdx) {
         ctx.beginPath(); ctx.moveTo(0, r * cellH); ctx.lineTo(W, r * cellH); ctx.stroke();
     }
 
-    // Scale source grid to display grid
-    const scaleX = 48 / dotCols;
-    const scaleY = 36 / dotRows;
+    const sx = 48 / dotCols;
+    const sy = 36 / dotRows;
 
     for (let row = 0; row < dotRows; row++) {
+        const srcRow = Math.min(Math.floor(row * sy), 35);
         for (let col = 0; col < dotCols; col++) {
-            // Sample from source grid (nearest neighbor)
-            const srcCol = Math.floor(col * scaleX);
-            const srcRow = Math.floor(row * scaleY);
+            const srcCol = Math.min(Math.floor(col * sx), 47);
             const charId = grid[srcRow * 48 + srcCol];
+            if (charId === 0) continue;
 
-            if (charId === 0) continue; // background, skip
-
-            const color = CHAR_COLORS[charId] || [255, 255, 255];
+            const color = COLORS[charId] || [255, 255, 255];
             const x = col * cellW + gap;
             const y = row * cellH + gap;
             const w = cellW - gap * 2;
             const h = cellH - gap * 2;
 
-            // Glow for bright characters
-            if (charId !== 0) {
+            // Glow
+            if (charId >= 2) {
                 ctx.fillStyle = `rgba(${color[0]},${color[1]},${color[2]},.08)`;
                 ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
             }
 
-            // The colored block
+            // Block
             ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
             ctx.fillRect(x, y, w, h);
 
-            // Inner highlight for character blocks
+            // Highlight
             if (charId >= 2) {
                 ctx.fillStyle = `rgba(255,255,255,.1)`;
                 ctx.fillRect(x + 2, y + 2, w * .3, h * .2);
@@ -279,25 +272,17 @@ function renderFrame(frameIdx) {
     }
 }
 
-// ---- Frame loop ----
-let currentFrame = 0;
+// Frame loop — synced to audio
 function frameLoop() {
     if (!isPlaying) return;
-
-    // Sync frame to audio position
-    if (audio.duration) {
-        currentFrame = Math.floor(audio.currentTime * FPS);
-        if (currentFrame >= FRAME_COUNT) currentFrame = 0;
-    }
-
-    renderFrame(currentFrame);
+    const fi = Math.floor((audio.currentTime || 0) * FPS);
+    const clamped = Math.min(fi, frames.length - 1);
+    if (clamped >= 0) renderFrame(clamped);
     updateProgress();
     updateLyrics();
-
     animId = requestAnimationFrame(frameLoop);
 }
 
-// ---- Progress ----
 function updateProgress() {
     if (!audio.duration) return;
     const pct = (audio.currentTime / audio.duration) * 100;
@@ -308,14 +293,25 @@ function updateProgress() {
 function fmtTime(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+(sec<10?'0':'')+sec; }
 function updateLyrics() { lyricsBar.textContent = getCurrentLyrics(audio.currentTime || 0); }
 
-// ---- Controls ----
+// Controls
 const btnPause = document.getElementById('btnPause');
 const btnMute = document.getElementById('btnMute');
 
 btnPause.addEventListener('click', e => {
     e.stopPropagation();
-    if (audio.paused) { audio.play(); isPlaying = true; btnPause.textContent = '⏸'; lyricsBar.classList.add('show'); frameLoop(); }
-    else { audio.pause(); isPlaying = false; btnPause.textContent = '▶'; if(animId) cancelAnimationFrame(animId); }
+    if (audio.paused) {
+        audio.play().catch(()=>{});
+        isPlaying = true;
+        btnPause.textContent = '⏸';
+        lyricsBar.classList.add('lyrics-show');
+        lastRenderedFrame = -1;
+        frameLoop();
+    } else {
+        audio.pause();
+        isPlaying = false;
+        btnPause.textContent = '▶';
+        if (animId) cancelAnimationFrame(animId);
+    }
 });
 btnMute.addEventListener('click', e => {
     e.stopPropagation();
@@ -324,42 +320,54 @@ btnMute.addEventListener('click', e => {
     btnMute.textContent = isMuted ? '♫' : '♪';
 });
 
-// Touch bar drag
+// Touch bar
 const touchBar = document.getElementById('touchBar');
 let dragging = false;
-touchBar.addEventListener('mousedown', e => { dragging = true; seekFromMouse(e); });
-document.addEventListener('mousemove', e => { if (dragging) seekFromMouse(e); });
-document.addEventListener('mouseup', () => { dragging = false; });
-touchBar.addEventListener('touchstart', e => { dragging = true; seekFromTouch(e); });
-document.addEventListener('touchmove', e => { if (dragging) seekFromTouch(e); });
-document.addEventListener('touchend', () => { dragging = false; });
-function seekFromMouse(e) { const r = touchBar.getBoundingClientRect(); seek((e.clientX - r.left) / r.width); }
-function seekFromTouch(e) { const r = touchBar.getBoundingClientRect(); seek((e.touches[0].clientX - r.left) / r.width); }
-function seek(pct) { if (!audio.duration) return; pct = Math.max(0, Math.min(1, pct)); audio.currentTime = pct * audio.duration; currentFrame = Math.floor(audio.currentTime * FPS); renderFrame(currentFrame); updateProgress(); updateLyrics(); }
+function seekFrom(e) { const r = touchBar.getBoundingClientRect(); seek((e.clientX - r.left) / r.width); }
+function seekFromT(e) { const r = touchBar.getBoundingClientRect(); seek((e.touches[0].clientX - r.left) / r.width); }
+function seek(pct) {
+    if (!audio.duration) return;
+    pct = Math.max(0, Math.min(1, pct));
+    audio.currentTime = pct * audio.duration;
+    lastRenderedFrame = -1;
+    renderFrame(Math.floor(audio.currentTime * FPS));
+    updateProgress();
+    updateLyrics();
+}
+touchBar.addEventListener('mousedown', e => { dragging = true; seekFrom(e); });
+document.addEventListener('mousemove', e => { if (dragging) seekFrom(e); });
+document.addEventListener('mouseup', () => dragging = false);
+touchBar.addEventListener('touchstart', e => { dragging = true; seekFromT(e); });
+document.addEventListener('touchmove', e => { if (dragging) seekFromT(e); });
+document.addEventListener('touchend', () => dragging = false);
 
 // Size slider
+const SIZES = [[24,18],[32,24],[48,36],[64,48],[80,60],[96,72]];
+let sizeIdx = 2;
 const sizeTrack = document.getElementById('sizeTrack');
 const sizeThumb = document.getElementById('sizeThumb');
 const sizeVal = document.getElementById('sizeVal');
-const SIZES = [[24,18],[32,24],[48,36],[64,48],[80,60],[96,72]];
-let sizeIdx = 2; // default 48x36
 function updateSizeSlider() {
     const pct = (sizeIdx / (SIZES.length - 1)) * 100;
     sizeThumb.style.top = (100 - pct) + '%';
     dotCols = SIZES[sizeIdx][0];
     dotRows = SIZES[sizeIdx][1];
     sizeVal.textContent = dotCols + '×' + dotRows;
+    lastRenderedFrame = -1;
+    if (!isPlaying && frames.length > 0) {
+        const fi = Math.floor((audio.currentTime || 0) * FPS);
+        renderFrame(Math.min(fi, frames.length - 1));
+    }
 }
 let sizeDragging = false;
-sizeTrack.addEventListener('mousedown', e => { sizeDragging = true; setSizeFromMouse(e); });
-document.addEventListener('mousemove', e => { if (sizeDragging) setSizeFromMouse(e); });
-document.addEventListener('mouseup', () => { sizeDragging = false; });
-sizeTrack.addEventListener('touchstart', e => { sizeDragging = true; setSizeFromTouch(e); });
-document.addEventListener('touchmove', e => { if (sizeDragging) setSizeFromTouch(e); });
-document.addEventListener('touchend', () => { sizeDragging = false; });
-function setSizeFromMouse(e) { const r = sizeTrack.getBoundingClientRect(); setIdxFromPct(1 - (e.clientY - r.top) / r.height); }
-function setSizeFromTouch(e) { const r = sizeTrack.getBoundingClientRect(); setIdxFromPct(1 - (e.touches[0].clientY - r.top) / r.height); }
-function setIdxFromPct(pct) { sizeIdx = Math.round(Math.max(0, Math.min(1, pct)) * (SIZES.length - 1)); updateSizeSlider(); if (!isPlaying) renderFrame(currentFrame); }
+function sizeFrom(e) { const r = sizeTrack.getBoundingClientRect(); sizeIdx = Math.round(Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height)) * (SIZES.length - 1)); updateSizeSlider(); }
+function sizeFromT(e) { const r = sizeTrack.getBoundingClientRect(); sizeIdx = Math.round(Math.max(0, Math.min(1, 1 - (e.touches[0].clientY - r.top) / r.height)) * (SIZES.length - 1)); updateSizeSlider(); }
+sizeTrack.addEventListener('mousedown', e => { sizeDragging = true; sizeFrom(e); });
+document.addEventListener('mousemove', e => { if (sizeDragging) sizeFrom(e); });
+document.addEventListener('mouseup', () => sizeDragging = false);
+sizeTrack.addEventListener('touchstart', e => { sizeDragging = true; sizeFromT(e); });
+document.addEventListener('touchmove', e => { if (sizeDragging) sizeFromT(e); });
+document.addEventListener('touchend', () => sizeDragging = false);
 updateSizeSlider();
 
 // Upload background
@@ -367,17 +375,13 @@ document.getElementById('fileInput').addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
     const img = new Image();
-    img.onload = () => {
-        bgImage = img;
-        bgPattern = ctx.createPattern(img, 'repeat');
-        if (!isPlaying) renderFrame(currentFrame);
-    };
+    img.onload = () => { bgPattern = ctx.createPattern(img, 'repeat'); };
     img.src = URL.createObjectURL(file);
 });
 
-// Fullscreen on click
+// Fullscreen
 document.body.addEventListener('click', e => {
-    if (e.target.closest('#controls') || e.target.closest('#sizeSlider') || e.target.closest('#uploadBtn')) return;
+    if (e.target.closest('#controls,#sizeSlider,#uploadBtn')) return;
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
 });
 
@@ -390,32 +394,37 @@ document.addEventListener('keydown', e => {
     else if (e.code === 'ArrowDown') { sizeIdx = Math.max(sizeIdx - 1, 0); updateSizeSlider(); }
 });
 
-// Preload
-let preloadDone = false;
-function startPlayback() {
-    if (preloadDone) return;
-    preloadDone = true;
-    preloader.classList.add('hidden');
-    audio.play().catch(() => {});
+// Decode frames
+decodeFrames();
+console.log('Decoded', frames.length, 'frames');
+
+// Auto-play
+let started = false;
+function startPlay() {
+    if (started) return;
+    started = true;
+    preloader.classList.add('done');
+    audio.play().catch(()=>{});
     isPlaying = true;
     btnPause.textContent = '⏸';
-    lyricsBar.classList.add('show');
+    lyricsBar.classList.add('lyrics-show');
     frameLoop();
 }
+
 audio.addEventListener('progress', () => {
     if (audio.buffered.length > 0 && audio.duration) {
         preBar.style.width = (audio.buffered.end(audio.buffered.length - 1) / audio.duration * 100) + '%';
     }
 });
-audio.addEventListener('canplaythrough', () => { preBar.style.width = '100%'; setTimeout(startPlayback, 400); }, { once: true });
-// Fallback: if canplaythrough never fires, start after 3s
-setTimeout(startPlayback, 3000);
+audio.addEventListener('canplaythrough', () => { preBar.style.width = '100%'; setTimeout(startPlay, 300); }, { once: true });
+// Fallback
+setTimeout(startPlay, 4000);
 audio.addEventListener('ended', () => { audio.currentTime = 0; audio.play(); });
 
 // Danmaku
 (function() {
     const layer = document.getElementById('dmLayer');
-    const texts = ['ナイスー！','こらー！','やれやれ','www','Bad Apple!!','幻想郷','博麗霊夢','霧雨魔理沙','十六夜咲夜','レミリア','チルノ','⑨','弾幕ごっこしよー！','Unacceptable!!','魔炮','スカーレットディレイン','ZUN','東方Project'];
+    const texts = ['ナイスー！','こらー！','やれやれ','www','Bad Apple!!','幻想郷','博麗霊夢','霧雨魔理沙','十六夜咲夜','レミリア','チルノ','⑨','弾幕ごっこしよー！','Unacceptable!!','魔炮','ZUN','東方Project'];
     for (let i = 0; i < 12; i++) {
         const s = document.createElement('span');
         s.className = 'dm-text';
@@ -428,13 +437,9 @@ audio.addEventListener('ended', () => { audio.currentTime = 0; audio.play(); });
     }
 })();
 
-// Init
-try {
-    decodeFrames();
-    console.log('Frames decoded:', frameData.length);
 } catch(e) {
-    console.error('Decode error:', e);
-    document.getElementById('preloader').innerHTML = '<div style="color:#c0392b">Error: '+e.message+'</div>';
+    console.error(e);
+    document.getElementById('preErr').textContent = 'Error: ' + e.message;
 }
 </script>
 </body>
