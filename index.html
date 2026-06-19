@@ -123,6 +123,7 @@
             display: block;
             width: 100%;
             image-rendering: pixelated;
+            background: #050508;
         }
 
         /* hidden video element */
@@ -273,7 +274,7 @@
             <div class="loading-spinner"></div>
             <div class="loading-text">幻想郷にロード中...</div>
         </div>
-        <canvas id="dotCanvas" width="96" height="72"></canvas>
+        <canvas id="dotCanvas" width="768" height="576"></canvas>
         <video id="videoEl" src="badapple.mp4" preload="auto" loop></video>
         <div class="controls">
             <button class="btn-play" id="btnPlay">▶</button>
@@ -305,8 +306,8 @@
 <footer>⛩ 博麗神社 — nahsuoij.github.io ⛩</footer>
 
 <script>
-const DOT_COLS = 96;
-const DOT_ROWS = 72;
+const DOT_COLS = 48;
+const DOT_ROWS = 36;
 const canvas = document.getElementById('dotCanvas');
 const ctx = canvas.getContext('2d');
 const video = document.getElementById('videoEl');
@@ -333,42 +334,75 @@ let isPlaying = false;
 let animId = null;
 
 function renderDots() {
-    // draw current video frame to offscreen canvas (downscaled)
     offCtx.drawImage(video, 0, 0, DOT_COLS, DOT_ROWS);
     const imgData = offCtx.getImageData(0, 0, DOT_COLS, DOT_ROWS).data;
 
-    // clear main canvas
-    ctx.fillStyle = '#0a0a12';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const W = canvas.width;
+    const H = canvas.height;
+    const cellW = W / DOT_COLS;
+    const cellH = H / DOT_ROWS;
+    const gap = 1.5;
 
-    const dotW = canvas.width / DOT_COLS;
-    const dotH = canvas.height / DOT_ROWS;
+    // dark grid background
+    ctx.fillStyle = '#08080c';
+    ctx.fillRect(0, 0, W, H);
 
+    // draw grid lines (subtle)
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    ctx.lineWidth = 0.5;
+    for (let c = 0; c <= DOT_COLS; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * cellW, 0);
+        ctx.lineTo(c * cellW, H);
+        ctx.stroke();
+    }
+    for (let r = 0; r <= DOT_ROWS; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * cellH);
+        ctx.lineTo(W, r * cellH);
+        ctx.stroke();
+    }
+
+    // draw each cell as a filled square with gap (Excel feel)
     for (let row = 0; row < DOT_ROWS; row++) {
         for (let col = 0; col < DOT_COLS; col++) {
             const i = (row * DOT_COLS + col) * 4;
-            // grayscale brightness 0-255
             const brightness = imgData[i] * 0.299 + imgData[i+1] * 0.587 + imgData[i+2] * 0.114;
-            const level = Math.round((brightness / 255) * 15); // 0-15
+            const level = Math.round((brightness / 255) * 15);
+
+            const x = col * cellW + gap;
+            const y = row * cellH + gap;
+            const w = cellW - gap * 2;
+            const h = cellH - gap * 2;
 
             if (level > 0) {
                 const c = PALETTE[level];
-                const x = col * dotW + dotW / 2;
-                const y = row * dotH + dotH / 2;
-                const r = (level / 15) * Math.min(dotW, dotH) * 0.42 + 0.3;
 
-                // glow for bright dots
-                if (level > 11) {
-                    ctx.beginPath();
-                    ctx.arc(x, y, r + 1.5, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.15)`;
-                    ctx.fill();
+                // cell glow
+                if (level > 10) {
+                    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.06)`;
+                    ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
                 }
 
+                // the cell itself
+                const radius = Math.min(w, h) * 0.15;
                 ctx.beginPath();
-                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + w - radius, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+                ctx.lineTo(x + w, y + h - radius);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+                ctx.lineTo(x + radius, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
                 ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
                 ctx.fill();
+            } else {
+                // dark empty cell
+                ctx.fillStyle = 'rgba(255,255,255,0.008)';
+                ctx.fillRect(x, y, w, h);
             }
         }
     }
