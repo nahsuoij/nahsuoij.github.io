@@ -2,308 +2,181 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bad Apple!! — 東方Project Dot Matrix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bad Apple!! — 東方Project</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;700;900&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        :root {
-            --shrine-red: #c0392b;
-            --sakura: #ffb7c5;
-            --night: #0a0a12;
-            --glow: #e74c8b;
-        }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background: var(--night);
             color: #fff;
-            min-height: 100vh;
-            overflow-x: hidden;
+            cursor: none;
+        }
+        body:hover { cursor: default; }
+
+        /* === Fullscreen Canvas === */
+        #dotCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #050508;
         }
 
-        .torii-header {
-            position: relative;
-            text-align: center;
-            padding: 2rem 1rem 1rem;
-            background: linear-gradient(180deg, #1a0a1a 0%, var(--night) 100%);
-            overflow: hidden;
+        /* hidden video */
+        #videoEl { display: none; }
+
+        /* === Preloader === */
+        #preloader {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #050508;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.8s;
         }
-        .torii-header::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 50%;
-            transform: translateX(-50%);
-            width: 300px; height: 4px;
-            background: var(--shrine-red);
-            border-radius: 0 0 2px 2px;
-        }
-        .torii-header::after {
-            content: '';
-            position: absolute;
-            top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 340px; height: 3px;
-            background: var(--shrine-red);
-        }
-        .site-title {
-            font-size: 1.8rem;
+        #preloader.hidden { opacity: 0; pointer-events: none; }
+
+        .pre-title {
+            font-size: 2.5rem;
             font-weight: 900;
-            letter-spacing: 0.15em;
-            margin-top: 1.5rem;
-            background: linear-gradient(90deg, var(--sakura), #fff, var(--sakura));
+            letter-spacing: 0.2em;
+            background: linear-gradient(90deg, #ffb7c5, #fff, #ffb7c5);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
         }
-        .site-subtitle {
-            font-size: 0.85rem;
-            color: #888;
-            margin-top: 0.3rem;
-            letter-spacing: 0.3em;
+        .pre-sub {
+            font-size: 0.8rem;
+            color: #555;
+            letter-spacing: 0.4em;
+            margin-bottom: 2rem;
         }
 
+        .pre-bar-wrap {
+            width: 200px;
+            height: 2px;
+            background: #1a1a2e;
+            border-radius: 1px;
+            overflow: hidden;
+        }
+        .pre-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #c0392b, #e74c8b);
+            transition: width 0.3s;
+        }
+
+        .pre-hint {
+            margin-top: 1.5rem;
+            font-size: 0.7rem;
+            color: #333;
+            letter-spacing: 0.2em;
+        }
+
+        /* === Overlay Controls (bottom-left, transparent) === */
+        #controls {
+            position: fixed;
+            bottom: 20px; left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        body:hover #controls { opacity: 1; }
+        /* touch: always visible */
+        @media (hover: none) { #controls { opacity: 0.8; } }
+
+        .ctrl-btn {
+            width: 40px; height: 40px;
+            border: 1px solid rgba(192,57,43,0.4);
+            border-radius: 50%;
+            background: rgba(10,10,16,0.6);
+            backdrop-filter: blur(8px);
+            color: #ffb7c5;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .ctrl-btn:hover {
+            background: rgba(192,57,43,0.3);
+            border-color: rgba(192,57,43,0.7);
+            transform: scale(1.1);
+        }
+
+        /* === Danmaku === */
         .danmaku-layer {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
             pointer-events: none;
-            z-index: 0;
+            z-index: 1;
             overflow: hidden;
         }
         .danmaku-text {
             position: absolute;
             white-space: nowrap;
             font-size: 14px;
-            opacity: 0.06;
-            color: var(--sakura);
-            animation: danmaku-scroll linear infinite;
+            opacity: 0.04;
+            color: #ffb7c5;
+            animation: dm-scroll linear infinite;
         }
-        @keyframes danmaku-scroll {
+        @keyframes dm-scroll {
             from { transform: translateX(100vw); }
             to { transform: translateX(-100%); }
         }
 
-        .player-section {
-            position: relative;
-            z-index: 1;
-            max-width: 900px;
-            margin: 1.5rem auto;
-            padding: 0 1rem;
-        }
-        .player-frame {
-            position: relative;
-            background: #0d0d15;
-            border: 2px solid #222;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 0 30px rgba(231,76,139,0.1), inset 0 0 60px rgba(0,0,0,0.5);
-        }
-        .player-frame::before {
-            content: '博麗神社';
-            position: absolute;
-            top: 8px; left: 12px;
+        /* === Click to fullscreen hint === */
+        #fsHint {
+            position: fixed;
+            bottom: 70px; left: 20px;
             font-size: 0.65rem;
-            color: var(--shrine-red);
-            opacity: 0.5;
-            letter-spacing: 0.2em;
-            z-index: 2;
-        }
-        .player-frame::after {
-            content: '⛩';
-            position: absolute;
-            top: 6px; right: 12px;
-            font-size: 1rem;
-            opacity: 0.3;
-            z-index: 2;
-        }
-
-        #dotCanvas {
-            display: block;
-            width: 100%;
-            image-rendering: pixelated;
-            background: #050508;
-        }
-
-        /* hidden video element */
-        #videoEl { display: none; }
-
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: #111118;
-            border-top: 1px solid #1a1a2e;
-        }
-        .btn-play {
-            background: var(--shrine-red);
-            border: none;
-            color: #fff;
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .btn-play:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(192,57,43,0.5);
-        }
-        .progress-bar {
-            flex: 1;
-            height: 4px;
-            background: #222;
-            border-radius: 2px;
-            cursor: pointer;
-            position: relative;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--shrine-red), var(--glow));
-            border-radius: 2px;
-            width: 0%;
-        }
-        .time-label {
-            font-size: 0.75rem;
-            color: #666;
-            font-variant-numeric: tabular-nums;
-            min-width: 80px;
-            text-align: right;
-            flex-shrink: 0;
-        }
-
-        .loading-overlay {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #0d0d15;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            transition: opacity 0.5s;
-        }
-        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-        .loading-spinner {
-            width: 40px; height: 40px;
-            border: 3px solid #222;
-            border-top-color: var(--shrine-red);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text {
-            margin-top: 1rem;
-            color: #666;
-            font-size: 0.8rem;
+            color: rgba(255,183,197,0.25);
             letter-spacing: 0.15em;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
-
-        .info-section {
-            position: relative;
-            z-index: 1;
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            text-align: center;
-        }
-        .info-card {
-            background: linear-gradient(135deg, #12121e, #1a1a2e);
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 2rem;
-        }
-        .info-card h2 {
-            font-size: 1.2rem;
-            color: var(--sakura);
-            margin-bottom: 1rem;
-            letter-spacing: 0.1em;
-        }
-        .info-card p {
-            color: #888;
-            font-size: 0.85rem;
-            line-height: 1.8;
-        }
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.8rem;
-            border: 1px solid var(--shrine-red);
-            border-radius: 50px;
-            color: var(--shrine-red);
-            font-size: 0.7rem;
-            margin: 0.3rem;
-            letter-spacing: 0.1em;
-        }
-
-        .ofuda { position: fixed; font-size: 1.5rem; opacity: 0.04; pointer-events: none; z-index: 0; }
-        .ofuda:nth-child(1) { top: 20%; left: 5%; transform: rotate(-15deg); }
-        .ofuda:nth-child(2) { top: 60%; right: 8%; transform: rotate(10deg); }
-        .ofuda:nth-child(3) { bottom: 10%; left: 10%; transform: rotate(-5deg); }
-
-        footer { text-align: center; padding: 2rem; color: #333; font-size: 0.7rem; letter-spacing: 0.1em; }
-
-        @media (max-width: 600px) {
-            .site-title { font-size: 1.3rem; }
-            .controls { gap: 0.5rem; padding: 0.8rem; }
-        }
+        body:hover #fsHint { opacity: 1; }
+        @media (hover: none) { #fsHint { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
-<div class="ofuda">弾幕</div>
-<div class="ofuda">結界</div>
-<div class="ofuda">夢想</div>
+<!-- Preloader -->
+<div id="preloader">
+    <div class="pre-title">Bad Apple!!</div>
+    <div class="pre-sub">東方 PROJECT</div>
+    <div class="pre-bar-wrap"><div class="pre-bar" id="preBar"></div></div>
+    <div class="pre-hint">幻想郷を準備中...</div>
+</div>
 
+<!-- Danmaku -->
 <div class="danmaku-layer" id="danmakuLayer"></div>
 
-<header class="torii-header">
-    <div class="site-title">Bad Apple!!</div>
-    <div class="site-subtitle">東方 PROJECT — DOT MATRIX PLAYER</div>
-</header>
+<!-- Canvas (fullscreen) -->
+<canvas id="dotCanvas"></canvas>
 
-<section class="player-section">
-    <div class="player-frame">
-        <div class="loading-overlay" id="loadingOverlay">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">幻想郷にロード中...</div>
-        </div>
-        <canvas id="dotCanvas" width="768" height="576"></canvas>
-        <video id="videoEl" src="badapple.mp4" preload="auto" loop muted></video>
-        <div class="controls">
-            <button class="btn-play" id="btnPlay">▶</button>
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="time-label" id="timeLabel">0:00 / 0:00</div>
-        </div>
-    </div>
-</section>
+<!-- Hidden video -->
+<video id="videoEl" src="badapple.mp4" preload="auto" loop muted playsinline></video>
 
-<section class="info-section">
-    <div class="info-card">
-        <h2>✿ 幻想郷より愛を込めて ✿</h2>
-        <p>
-            「Bad Apple!!」は ZUN の東方Project より。<br>
-            この動画は点陣（ドットマトリクス）で描かれています。<br>
-            闘え！幻想郷の巫女たち。
-        </p>
-        <div style="margin-top: 1.2rem;">
-            <span class="badge">東方PROJECT</span>
-            <span class="badge">BAD APPLE!!</span>
-            <span class="badge">DOT MATRIX</span>
-            <span class="badge">PHANTASMAGORIA</span>
-        </div>
-    </div>
-</section>
+<!-- Controls -->
+<div id="controls">
+    <button class="ctrl-btn" id="btnPause" title="Pause">⏸</button>
+    <button class="ctrl-btn" id="btnMute" title="Mute">🔇</button>
+</div>
 
-<footer>⛩ 博麗神社 — nahsuoij.github.io ⛩</footer>
+<div id="fsHint">CLICK TO FULLSCREEN</div>
 
 <script>
 const DOT_COLS = 48;
@@ -311,41 +184,38 @@ const DOT_ROWS = 36;
 const canvas = document.getElementById('dotCanvas');
 const ctx = canvas.getContext('2d');
 const video = document.getElementById('videoEl');
-const btnPlay = document.getElementById('btnPlay');
-const progressFill = document.getElementById('progressFill');
-const timeLabel = document.getElementById('timeLabel');
-const overlay = document.getElementById('loadingOverlay');
+const preloader = document.getElementById('preloader');
+const preBar = document.getElementById('preBar');
+const btnPause = document.getElementById('btnPause');
+const btnMute = document.getElementById('btnMute');
+const fsHint = document.getElementById('fsHint');
 
-// Touhou-inspired palette: vivid colored blocks
+// Touhou palette: deep purple → sakura → white
 const PALETTE = [
-    [10,10,16],           // 0: almost black
-    [40,15,50],           // 1: deep purple
-    [70,20,80],           // 2
-    [100,25,110],         // 3
-    [130,30,130],         // 4
-    [160,35,140],         // 5
-    [190,40,150],         // 6: sakura
-    [220,60,130],         // 7: pink
-    [240,100,140],        // 8
-    [245,140,160],        // 9
-    [250,170,180],        // 10
-    [255,195,200],        // 11: light sakura
-    [255,215,220],        // 12
-    [255,235,240],        // 13
-    [255,248,250],        // 14
-    [255,255,255],        // 15: white
+    [8,8,14],[35,12,48],[60,18,75],[90,22,100],
+    [120,28,120],[150,32,135],[175,38,145],[200,50,130],
+    [225,75,130],[240,110,140],[248,150,160],[252,185,190],
+    [255,210,215],[255,232,235],[255,248,250],[255,255,255],
 ];
 
-// offscreen canvas for reading video pixels
 const offscreen = document.createElement('canvas');
 offscreen.width = DOT_COLS;
 offscreen.height = DOT_ROWS;
 const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
 
 let isPlaying = false;
+let isMuted = true;
 let animId = null;
-let audioUnlocked = false;
 
+// --- Resize canvas to fill screen ---
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// --- Render ---
 function renderDots() {
     offCtx.drawImage(video, 0, 0, DOT_COLS, DOT_ROWS);
     const imgData = offCtx.getImageData(0, 0, DOT_COLS, DOT_ROWS).data;
@@ -354,25 +224,19 @@ function renderDots() {
     const H = canvas.height;
     const cellW = W / DOT_COLS;
     const cellH = H / DOT_ROWS;
-    const gap = 2;
+    const gap = Math.max(1.5, Math.min(cellW, cellH) * 0.06);
 
     ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, W, H);
 
-    // grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.012)';
     ctx.lineWidth = 0.5;
     for (let c = 0; c <= DOT_COLS; c++) {
-        ctx.beginPath();
-        ctx.moveTo(c * cellW, 0);
-        ctx.lineTo(c * cellW, H);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(c * cellW, 0); ctx.lineTo(c * cellW, H); ctx.stroke();
     }
     for (let r = 0; r <= DOT_ROWS; r++) {
-        ctx.beginPath();
-        ctx.moveTo(0, r * cellH);
-        ctx.lineTo(W, r * cellH);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, r * cellH); ctx.lineTo(W, r * cellH); ctx.stroke();
     }
 
     for (let row = 0; row < DOT_ROWS; row++) {
@@ -389,24 +253,20 @@ function renderDots() {
             if (level > 1) {
                 const c = PALETTE[level];
 
-                // outer glow for bright cells
                 if (level > 9) {
-                    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.12)`;
+                    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.1)`;
                     ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
                 }
 
-                // the colored block
                 ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
                 ctx.fillRect(x, y, w, h);
 
-                // inner highlight for bright cells
                 if (level > 11) {
-                    ctx.fillStyle = `rgba(255,255,255,0.15)`;
-                    ctx.fillRect(x + 2, y + 2, w * 0.4, h * 0.3);
+                    ctx.fillStyle = `rgba(255,255,255,0.12)`;
+                    ctx.fillRect(x + 2, y + 2, w * 0.35, h * 0.25);
                 }
             } else {
-                // dark cell - barely visible
-                ctx.fillStyle = 'rgba(255,255,255,0.006)';
+                ctx.fillStyle = 'rgba(255,255,255,0.005)';
                 ctx.fillRect(x, y, w, h);
             }
         }
@@ -416,91 +276,80 @@ function renderDots() {
 function frameLoop() {
     if (!isPlaying || video.paused || video.ended) return;
     renderDots();
-    updateProgress();
     animId = requestAnimationFrame(frameLoop);
 }
 
-function updateProgress() {
-    if (!video.duration) return;
-    const pct = (video.currentTime / video.duration) * 100;
-    progressFill.style.width = pct + '%';
-    timeLabel.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
-}
-
-function formatTime(s) {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return m + ':' + (sec < 10 ? '0' : '') + sec;
-}
-
-function togglePlay() {
+// --- Controls ---
+btnPause.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (video.paused) {
-        // unlock audio on first user interaction
-        if (!audioUnlocked) {
-            video.muted = false;
-            audioUnlocked = true;
-        }
-        video.play();
-        isPlaying = true;
-        btnPlay.textContent = '⏸';
+        video.play(); isPlaying = true; btnPause.textContent = '⏸';
         frameLoop();
     } else {
-        video.pause();
-        isPlaying = false;
-        btnPlay.textContent = '▶';
+        video.pause(); isPlaying = false; btnPause.textContent = '▶';
         if (animId) cancelAnimationFrame(animId);
     }
-}
-
-btnPlay.addEventListener('click', togglePlay);
-
-document.getElementById('progressBar').addEventListener('click', (e) => {
-    if (!video.duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    video.currentTime = pct * video.duration;
-    if (!isPlaying) renderDots();
-    updateProgress();
 });
 
-// keyboard
-document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-    else if (e.code === 'ArrowRight') { video.currentTime = Math.min(video.currentTime + 5, video.duration); }
-    else if (e.code === 'ArrowLeft') { video.currentTime = Math.max(video.currentTime - 5, 0); }
+btnMute.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isMuted = !isMuted;
+    video.muted = isMuted;
+    btnMute.textContent = isMuted ? '🔇' : '🔊';
 });
 
-// loading + auto-play
-// auto-play (muted), user interaction unmutes
+// --- Click anywhere = fullscreen ---
+document.body.addEventListener('click', (e) => {
+    if (e.target.closest('#controls')) return;
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
+    }
+});
+
+// --- Preload & auto-play ---
 video.addEventListener('canplaythrough', () => {
-    overlay.classList.add('hidden');
-    video.play();
-    isPlaying = true;
-    btnPlay.textContent = '⏸';
-    frameLoop();
+    preBar.style.width = '100%';
+    setTimeout(() => {
+        preloader.classList.add('hidden');
+        video.play();
+        isPlaying = true;
+        btnPause.textContent = '⏸';
+        frameLoop();
+    }, 400);
 }, { once: true });
+
+// preload progress
+video.addEventListener('progress', () => {
+    if (video.buffered.length > 0) {
+        const pct = (video.buffered.end(video.buffered.length - 1) / video.duration) * 100;
+        preBar.style.width = pct + '%';
+    }
+});
 
 video.addEventListener('ended', () => {
     video.currentTime = 0;
     video.play();
 });
 
-// danmaku background
-(function createDanmaku() {
+// keyboard
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); btnPause.click(); }
+    else if (e.code === 'KeyM') { btnMute.click(); }
+    else if (e.code === 'KeyF') { document.documentElement.requestFullscreen?.(); }
+});
+
+// danmaku
+(function() {
     const layer = document.getElementById('danmakuLayer');
-    const texts = [
-        'ナイスー！', 'こらー！', 'やれやれ', 'www', 'Bad Apple!!',
-        '幻想郷', '博麗霊夢', '霧雨魔理沙', '十六夜咲夜',
-        'レミリア', 'チルノ', '⑨', '弾幕ごっこしよー！',
-        'Unacceptable!!', '魔炮', 'スカーレットディレイン',
-        'ZUN', '東方Project', 'Phantasmagoria',
-    ];
-    for (let i = 0; i < 15; i++) {
+    const texts = ['ナイスー！','こらー！','やれやれ','www','Bad Apple!!','幻想郷','博麗霊夢',
+        '霧雨魔理沙','十六夜咲夜','レミリア','チルノ','⑨','弾幕ごっこしよー！',
+        'Unacceptable!!','魔炮','スカーレットディレイン','ZUN','東方Project','Phantasmagoria'];
+    for (let i = 0; i < 12; i++) {
         const span = document.createElement('span');
         span.className = 'danmaku-text';
         span.textContent = texts[Math.floor(Math.random() * texts.length)];
         span.style.top = (Math.random() * 100) + '%';
-        span.style.animationDuration = (15 + Math.random() * 20) + 's';
+        span.style.animationDuration = (18 + Math.random() * 25) + 's';
         span.style.animationDelay = (-Math.random() * 30) + 's';
         span.style.fontSize = (10 + Math.random() * 8) + 'px';
         layer.appendChild(span);
