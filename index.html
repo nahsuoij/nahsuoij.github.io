@@ -275,7 +275,7 @@
             <div class="loading-text">幻想郷にロード中...</div>
         </div>
         <canvas id="dotCanvas" width="768" height="576"></canvas>
-        <video id="videoEl" src="badapple.mp4" preload="auto" loop></video>
+        <video id="videoEl" src="badapple.mp4" preload="auto" loop muted></video>
         <div class="controls">
             <button class="btn-play" id="btnPlay">▶</button>
             <div class="progress-bar" id="progressBar">
@@ -344,6 +344,7 @@ const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
 
 let isPlaying = false;
 let animId = null;
+let audioUnlocked = false;
 
 function renderDots() {
     offCtx.drawImage(video, 0, 0, DOT_COLS, DOT_ROWS);
@@ -434,6 +435,11 @@ function formatTime(s) {
 
 function togglePlay() {
     if (video.paused) {
+        // unlock audio on first user interaction
+        if (!audioUnlocked) {
+            video.muted = false;
+            audioUnlocked = true;
+        }
         video.play();
         isPlaying = true;
         btnPlay.textContent = '⏸';
@@ -465,10 +471,13 @@ document.addEventListener('keydown', (e) => {
 });
 
 // loading + auto-play
+// auto-play (muted), user interaction unmutes
 video.addEventListener('canplaythrough', () => {
     overlay.classList.add('hidden');
-    // auto-play
-    togglePlay();
+    video.play();
+    isPlaying = true;
+    btnPlay.textContent = '⏸';
+    frameLoop();
 }, { once: true });
 
 video.addEventListener('ended', () => {
