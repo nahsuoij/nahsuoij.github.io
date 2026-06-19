@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Generate character-colored frames.js from badapple.mp4.
-Character colors are applied ONLY to silhouette edge/border pixels.
-The silhouette core remains white (ID 1).
+Uses template matching against original 900-frame character data
+to precisely detect which character appears in each frame.
 """
 import cv2
 import numpy as np
@@ -11,6 +11,7 @@ import zlib
 import struct
 import subprocess
 import os
+from collections import Counter
 
 CHAR_COLORS = {
     0: [8, 8, 14],
@@ -33,11 +34,8 @@ VIDEO_FPS = 15.0
 WORK_DIR = '/root/.openclaw/workspace/github-pages'
 
 
-def load_original_edge_mapping():
-    """
-    Load d615a1e frames. For each frame, extract which character color IDs
-    appear on the silhouette edges.
-    """
+def load_original_data():
+    """Load d615a1e frames - returns list of (binary_mask, edge_color_id)."""
     src = subprocess.run(
         ['git', 'show', 'd615a1e:frames.js'],
         capture_output=True, text=True, cwd=WORK_DIR
@@ -62,144 +60,154 @@ def load_original_edge_mapping():
                 if idx < H * W:
                     grid[idx] = val
                     idx += 1
-        frames.append(grid.reshape(H, W))
+        
+        grid_2d = grid.reshape(H, W)
+        # Extract binary mask (any non-black pixel)
+        binary = (grid_2d > 0).astype(np.uint8) * 255
+        # Find dominant edge color
+        edge_colors = [c for c in set(grid_2d.flatten()) if c >= 2]
+        if edge_colors:
+            # Pick the color with most pixels
+            counts = {c: (grid_2d == c).sum() for c in edge_colors}
+            edge_color = max(counts, key=counts.get)
+        else:
+            edge_color = 1
+        
+        frames.append((binary, edge_color))
         offset += rle_len * 2
     
     return frames
 
 
-def build_edge_schedule(original_frames):
-    """
-    From original 900 frames, determine which character color appears
-    on the edges in each frame. Returns per-frame dominant edge color.
-    """
-    frame_edge_colors = []
-    for grid in original_frames:
-        # Find edge pixels: non-black, non-white
-        edge_colors = [c for c in set(grid.flatten()) if c >= 2]
-        if not edge_colors:
-            frame_edge_colors.append(1)  # default white
-        elif len(edge_colors) == 1:
-            frame_edge_colors.append(edge_colors[0])
-        else:
-            # Pick the one with most edge pixels
-            counts = {c: (grid == c).sum() for c in edge_colors}
-            frame_edge_colors.append(max(counts, key=counts.get))
-    
-    return frame_edge_colors
-
-
-def get_edge_color(frame_idx, frame_edge_colors):
-    """Get character edge color for a frame, with cyclic extension."""
-    orig_len = len(frame_edge_colors)
-    if frame_idx < orig_len:
-        return frame_edge_colors[frame_idx]
-    # Cyclic: map back into original range
-    lookup = frame_idx % orig_len
-    return frame_edge_colors[lookup]
-
-
-def process_frame(gray, edge_color_id):
-    """
-    Convert grayscale frame to character-colored grid.
-    - Black pixels → ID 0
-    - White core pixels → ID 1
-    - Edge/border pixels → edge_color_id
-    """
-    # Binarize
-    _, binary = cv2.threshold(gray, 30, 255, cv2.THRESH_BINARY)
-    
-    # Find edge pixels using morphological operations
-    kernel = np.ones((3, 3), np.uint8)
-    eroded = cv2.erode(binary, kernel, iterations=1)
-    edge_mask = binary - eroded  # pixels that are on the border
-    
-    # Build grid
-    grid = np.zeros(H * W, dtype=np.uint8)
-    binary_flat = binary.flatten()
-    edge_flat = edge_mask.flatten()
-    
-    # Background = 0 (already initialized)
-    # Core = white (1)
-    grid[binary_flat > 0] = 1
-    # Edge = character color
-    grid[edge_flat > 0] = edge_color_id
-    
-    return grid
-
-
-def rle_encode(grid):
-    flat = grid.flatten()
-    rle = []
-    i = 0
-    while i < len(flat):
-        val = flat[i]
-        count = 1
-        while i + count < len(flat) and flat[i + count] == val and count < 255:
-            count += 1
-        rle.append((count, int(val)))
-        i += count
-    return rle
-
-
-def main():
-    print("=== Bad Apple!! Edge-Colored Frame Generator ===\n")
-    
-    print("Step 1: Loading original 900-frame edge mapping...")
-    original = load_original_edge_mapping()
-    edge_schedule = build_edge_schedule(original)
-    print(f"  {len(original)} frames loaded")
-    
-    # Show edge color distribution
-    from collections import Counter
-    dist = Counter(edge_schedule)
-    print(f"  Edge color distribution:")
-    for cid, count in dist.most_common():
-        print(f"    ID {cid}: {count} frames ({count/len(edge_schedule)*100:.1f}%)")
-    
-    print("\nStep 2: Extracting video frames...")
+def extract_video_frames():
+    """Extract frames from video at target FPS."""
     cap = cv2.VideoCapture(os.path.join(WORK_DIR, 'badapple.mp4'))
-    video_frames = []
+    frames = []
     step = VIDEO_FPS / TARGET_FPS
     idx = 0.0
-    total_vid = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    while int(idx) < total_vid:
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    while int(idx) < total:
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
         ret, frame = cap.read()
         if not ret:
             break
-        small = cv2.resize(frame, (W, H), interpolation=cv2.INTER_AREA)
+        small = cv2.resize(frame, (W, H), cv2.INTER_AREA)
         gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-        video_frames.append(gray)
+        _, binary = cv2.threshold(gray, 30, 255, cv2.THRESH_BINARY)
+        frames.append(binary)
         idx += step
     cap.release()
+    return frames
+
+
+def compute_signature(binary):
+    """Compute a compact shape signature for fast comparison."""
+    # Resize to 16x16 for fast comparison
+    small = cv2.resize(binary, (16, 16), cv2.INTER_AREA)
+    return small.flatten().astype(np.float32) / 255.0
+
+
+def find_best_match(video_binary, original_signatures, original_data):
+    """Find the best matching original frame for a video frame."""
+    sig = compute_signature(video_binary)
+    
+    # Quick size check
+    video_area = video_binary.sum() / 255
+    
+    best_score = float('inf')
+    best_idx = 0
+    
+    for i, (orig_sig, (orig_binary, _)) in enumerate(zip(original_signatures, original_data)):
+        orig_area = orig_binary.sum() / 255
+        
+        # Skip if area is too different
+        area_ratio = min(video_area, orig_area) / max(video_area, orig_area, 1)
+        if area_ratio < 0.3:
+            continue
+        
+        # L2 distance on signatures
+        dist = np.linalg.norm(sig - orig_sig)
+        
+        if dist < best_score:
+            best_score = dist
+            best_idx = i
+    
+    return best_idx, best_score
+
+
+def main():
+    print("=== Bad Apple!! Template-Matching Frame Generator ===\n")
+    
+    print("Step 1: Loading original 900-frame character data...")
+    original_data = load_original_data()
+    print(f"  {len(original_data)} frames loaded")
+    
+    # Compute signatures for original frames
+    print("  Computing shape signatures...")
+    original_signatures = [compute_signature(b) for b, _ in original_data]
+    
+    # Show original character distribution
+    color_dist = Counter(c for _, c in original_data)
+    print(f"  Original edge color distribution:")
+    for cid, count in color_dist.most_common():
+        print(f"    ID {cid}: {count} frames ({count/len(original_data)*100:.1f}%)")
+    
+    print("\nStep 2: Extracting video frames...")
+    video_frames = extract_video_frames()
     print(f"  {len(video_frames)} frames extracted")
     
-    print("\nStep 3: Generating edge-colored frames...")
+    print("\nStep 3: Template matching each frame...")
     all_rles = []
-    color_usage = Counter()
+    match_stats = Counter()
+    pixel_stats = Counter()
     
-    for i, gray in enumerate(video_frames[:2629]):
-        edge_color = get_edge_color(i, edge_schedule)
-        grid = process_frame(gray, edge_color)
-        rle = rle_encode(grid)
+    for i, v_binary in enumerate(video_frames[:2629]):
+        # Find best matching original frame
+        match_idx, score = find_best_match(v_binary, original_signatures, original_data)
+        _, edge_color = original_data[match_idx]
+        
+        # Build the grid: edge pixels get character color, core stays white
+        kernel = np.ones((3, 3), np.uint8)
+        eroded = cv2.erode(v_binary, kernel, iterations=1)
+        edge_mask = v_binary - eroded
+        
+        grid = np.zeros(H * W, dtype=np.uint8)
+        v_flat = v_binary.flatten()
+        e_flat = edge_mask.flatten()
+        
+        grid[v_flat > 0] = 1        # white core
+        grid[e_flat > 0] = edge_color  # character-colored edge
+        
+        # RLE encode
+        rle = []
+        j = 0
+        flat = grid
+        while j < len(flat):
+            val = flat[j]
+            count = 1
+            while j + count < len(flat) and flat[j + count] == val and count < 255:
+                count += 1
+            rle.append((count, int(val)))
+            j += count
         all_rles.append(rle)
         
-        for v in grid.flatten():
-            color_usage[v] += 1
+        match_stats[edge_color] += 1
+        for v in grid:
+            pixel_stats[v] += 1
         
         if i % 500 == 0:
-            edge_px = (grid >= 2).sum()
-            white_px = (grid == 1).sum()
-            print(f"  frame {i}: edge_color={edge_color}, edge_px={edge_px}, white_px={white_px}")
+            print(f"  frame {i}: matched to original#{match_idx} (score={score:.3f}), edge_color={edge_color}")
     
-    total_px = sum(color_usage.values())
+    total_pixels = sum(pixel_stats.values())
+    print(f"\n  Edge color distribution (all frames):")
+    for cid in sorted(match_stats.keys()):
+        print(f"    ID {cid}: {match_stats[cid]} frames ({match_stats[cid]/2629*100:.1f}%)")
+    
     print(f"\n  Pixel distribution:")
-    for cid in sorted(color_usage.keys()):
-        pct = color_usage[cid] / total_px * 100
-        print(f"    ID {cid}: {color_usage[cid]} px ({pct:.1f}%)")
+    for cid in sorted(pixel_stats.keys()):
+        print(f"    ID {cid}: {pixel_stats[cid]} px ({pixel_stats[cid]/total_pixels*100:.1f}%)")
     
-    print("\nStep 4: Packing...")
+    print("\nStep 4: Packing and compressing...")
     data = bytearray()
     for rle in all_rles:
         data.extend(struct.pack('>H', len(rle)))
@@ -208,7 +216,7 @@ def main():
     
     compressed = zlib.compress(bytes(data), 9)
     b64data = base64.b64encode(compressed).decode('ascii')
-    print(f"  Raw: {len(data)} bytes → Compressed: {len(compressed)} bytes → Base64: {len(b64data)} chars")
+    print(f"  Raw: {len(data)} → Compressed: {len(compressed)} → Base64: {len(b64data)} chars")
     
     colors_json = '{' + ', '.join(f'"{k}": [{v[0]}, {v[1]}, {v[2]}]' for k, v in sorted(CHAR_COLORS.items())) + '}'
     
