@@ -23,7 +23,7 @@
 
         /* Karaoke lyrics */
         #karaokeBar{position:fixed;bottom:50px;left:50%;transform:translateX(-50%);z-index:50;text-align:center;pointer-events:none;width:80vw}
-        .karaoke-line{position:absolute;left:0;right:0;font-size:1.1rem;letter-spacing:.12em;line-height:1.6;transition:opacity .4s;font-weight:300;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+        .karaoke-line{position:absolute;left:0;right:0;font-size:1.5rem;letter-spacing:.12em;line-height:1.6;transition:opacity .4s;font-weight:300;text-shadow:0 2px 8px rgba(0,0,0,.9)}
         .karaoke-line.active{opacity:1}
         .karaoke-line.inactive{opacity:0}
         .karaoke-line.waiting{opacity:.25}
@@ -94,7 +94,7 @@
 
 <div id="controls">
     <button class="ctrl-btn" id="btnPause" title="Pause">⏸</button>
-    <button class="ctrl-btn" id="btnMute" title="Mute">♪</button>
+    <button class="ctrl-btn" id="btnMute" title="Mute"><svg id="muteIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><g id="muteX" style="display:none"><line x1="2" y1="2" x2="22" y2="22" stroke-width="2.5"/></g></svg></button>
     <div id="touchBar"><div class="track"><div class="fill" id="tFill"></div></div><div class="thumb" id="tThumb"></div></div>
     <span id="timeLabel">0:00 / 0:00</span>
 </div>
@@ -349,7 +349,11 @@ btnPause.addEventListener('click', e => {
     if (audio.paused) { audio.play().catch(()=>{}); isPlaying=true; btnPause.textContent='⏸'; lastFrame=-1; frameLoop(); }
     else { audio.pause(); isPlaying=false; btnPause.textContent='▶'; if(animId) cancelAnimationFrame(animId); }
 });
-btnMute.addEventListener('click', e => { e.stopPropagation(); isMuted=!isMuted; audio.muted=isMuted; btnMute.textContent=isMuted?'♫':'♪'; });
+btnMute.addEventListener('click', e => {
+    e.stopPropagation(); isMuted=!isMuted; audio.muted=isMuted;
+    document.getElementById('muteX').style.display=isMuted?'inline':'none';
+    document.getElementById('muteIcon').style.opacity=isMuted?'0.4':'1';
+});
 
 // Touch bar
 const touchBar = document.getElementById('touchBar');
@@ -428,7 +432,8 @@ function startPlay() {
     isMuted = true;
     audio.muted = true;
     btnPause.textContent = '⏸';
-    btnMute.textContent = '♫';
+    document.getElementById('muteX').style.display='inline';
+    document.getElementById('muteIcon').style.opacity='0.4';
     frameLoop();
     audio.play().then(() => {
         audioReady = true;
@@ -441,7 +446,8 @@ function unmuteOnGesture() {
     if (audio.muted) {
         audio.muted = false;
         isMuted = false;
-        btnMute.textContent = '♪';
+        document.getElementById('muteX').style.display='none';
+        document.getElementById('muteIcon').style.opacity='1';
     }
 }
 document.addEventListener('click', unmuteOnGesture, { once: true });
