@@ -94,11 +94,11 @@
 
 <div id="controls">
     <button class="ctrl-btn" id="btnPause" title="Pause">⏸</button>
-    <button class="ctrl-btn" id="btnMute" title="Mute">♫</button>
+    <button class="ctrl-btn" id="btnMute" title="Mute">♪</button>
     <div id="touchBar"><div class="track"><div class="fill" id="tFill"></div></div><div class="thumb" id="tThumb"></div></div>
     <span id="timeLabel">0:00 / 0:00</span>
 </div>
-<div id="fsHint">CLICK → FULLSCREEN &nbsp;|&nbsp; SPACE: pause &nbsp; M: mute</div>
+<div id="fsHint">CLICK → START &nbsp;|&nbsp; SPACE: pause &nbsp; M: mute</div>
 
 <div id="sizeSlider">
     <span class="size-label">精細度</span>
@@ -111,7 +111,7 @@
     <input type="file" id="fileInput" accept="image/*">
 </div>
 
-<div id="version">4ce404c</div>
+<div id="version">d615a1e</div>
 
 <script src="pako.min.js?v=3"></script>
 <script src="frames.js?v=3"></script>
@@ -131,7 +131,7 @@ const preErr = document.getElementById('preErr');
 const karaokeBar = document.getElementById('karaokeBar');
 
 let isPlaying = false;
-let isMuted = true;
+let isMuted = false;
 let animId = null;
 let dotCols = 48;
 let dotRows = 36;
@@ -182,7 +182,7 @@ const KARAOKE = [
         {t:104.0,text:"様々な"},{t:105.2,text:"色彩"},{t:106.5,text:"　"},{t:106.5,text:"様々な"},{t:107.8,text:"形"}
     ]},
     { t: 110.0, words: [
-        {t:110.0,text:"すべてを"},{t:111.2,text:"壊して"},{t:112.5,text:"　"},{t:112.5,text:"すべてを"},{t:113.8,text:"變えて"}
+        {t:110.0,text:"すべてを"},{t:111.2,text:"壊して"},{t:112.5,text:"　"},{t:112.5,text:"すべてを"},{t:113.8,text:"変えて"}
     ]},
     { t: 116.0, words: [
         {t:116.0,text:"私は"},{t:117.0,text:"私で"},{t:118.0,text:"　"},{t:118.0,text:"あり続ける"},{t:119.5,text:"の"}
@@ -286,12 +286,8 @@ function updateKaraoke(time) {
 }
 
 // Canvas & frame rendering
-const COLORS = {};
-for (const [k, v] of Object.entries(CHAR_COLORS)) COLORS[k] = v;
-
-const off = document.createElement('canvas');
-off.width = 48; off.height = 36;
-const offCtx = off.getContext('2d', { willReadFrequently: true });
+if (typeof pako === 'undefined') { throw new Error('pako.js failed to load'); }
+if (typeof CHAR_COLORS === 'undefined' || typeof FRAME_DATA === 'undefined') { throw new Error('frames.js failed to load'); }
 
 function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.addEventListener('resize', resizeCanvas);
@@ -299,18 +295,23 @@ resizeCanvas();
 
 let frames = [];
 function decodeFrames() {
-    const bin = atob(FRAME_DATA);
-    const compressed = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) compressed[i] = bin.charCodeAt(i);
-    const raw = pako.inflate(compressed);
-    let offset = 0;
-    while (offset < raw.length) {
-        const rleLen = (raw[offset] << 8) | raw[offset + 1];
-        offset += 2;
-        const rle = [];
-        for (let i = 0; i < rleLen; i++) rle.push([raw[offset + i * 2], raw[offset + i * 2 + 1]]);
-        offset += rleLen * 2;
-        frames.push(rle);
+    try {
+        const bin = atob(FRAME_DATA);
+        const compressed = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) compressed[i] = bin.charCodeAt(i);
+        const raw = pako.inflate(compressed);
+        let offset = 0;
+        while (offset < raw.length) {
+            const rleLen = (raw[offset] << 8) | raw[offset + 1];
+            offset += 2;
+            if (offset + rleLen * 2 > raw.length) { console.warn('RLE truncated at offset', offset); break; }
+            const rle = [];
+            for (let i = 0; i < rleLen; i++) rle.push([raw[offset + i * 2], raw[offset + i * 2 + 1]]);
+            offset += rleLen * 2;
+            frames.push(rle);
+        }
+    } catch (e) {
+        throw new Error('Frame decode failed: ' + e.message);
     }
 }
 
@@ -318,7 +319,11 @@ function expandRLE(rle) {
     const grid = new Uint8Array(48 * 36);
     let idx = 0;
     for (let i = 0; i < rle.length; i++) {
-        for (let j = 0; j < rle[i][0]; j++) grid[idx++] = rle[i][1];
+        const count = rle[i][0], val = rle[i][1];
+        for (let j = 0; j < count; j++) {
+            if (idx >= 1728) return grid;
+            grid[idx++] = val;
+        }
     }
     return grid;
 }
@@ -347,7 +352,7 @@ function renderFrame(fi) {
             const sc = Math.min(Math.floor(col * sx), 47);
             const cid = grid[sr * 48 + sc];
             if (cid === 0) continue;
-            const c = COLORS[cid] || [255,255,255];
+            const c = CHAR_COLORS[cid] || [255,255,255];
             const x = col*cellW+gap, y = row*cellH+gap, w = cellW-gap*2, h = cellH-gap*2;
             if (cid >= 2) { ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},.08)`; ctx.fillRect(x-1,y-1,w+2,h+2); }
             ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
