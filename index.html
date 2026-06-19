@@ -106,6 +106,7 @@
     <input type="file" id="fileInput" accept="image/*">
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 <script src="frames.js"></script>
 <script>
 // ============================================================
@@ -128,36 +129,38 @@ let dotRows = 36;
 let bgImage = null; // uploaded background image
 let bgPattern = null; // canvas pattern from bg image
 
-// Bad Apple lyrics (Japanese, synced roughly to 12fps frames)
-// Format: [startFrame, "lyrics text"]
+// Bad Apple lyrics — actual song, time-based (seconds)
 const LYRICS = [
     [0, "流れてく　時の中ででも"],
-    [38, "気だるさが　ほらグルグル回って"],
-    [76, "私から　離れる心も"],
-    [110, "見えないわ　裸足のまま"],
-    [145, "ityEngineを　駆け抜ける　この身体"],
-    [180, "It's a BAD APPLE!!"],
-    [215, "果てるまで　Bad Apple!!"],
-    [250, "誰かが描いた　世界の中で"],
-    [290, "מנוな色彩　מנוな形"],
-    [325, "すべてを壊して　すべてを変えて"],
-    [360, "私は私で　あり続けるの"],
-    [400, "ityEngineを　駆け抜ける　この身体"],
-    [435, "It's a BAD APPLE!!"],
-    [470, "果てるまで　Bad Apple!!"],
-    [510, "もう止まれない　Bad Apple!!"],
-    [545, "掻き消えてく　幻の夢"],
-    [580, "ityEngineを　駆け抜ける　この身体"],
-    [615, "It's a BAD APPLE!!"],
-    [650, "果てるまで　Bad Apple!!"],
-    [690, "もう止まれない　Bad Apple!!"],
-    [730, ""],
+    [5.5, "気だるさが　ほらグルグル回って"],
+    [11.0, "私から　離れる心も"],
+    [16.0, "見えないわ　裸足のまま"],
+    [21.5, "ityEngineを　駆け抜ける　この身体"],
+    [27.0, "It's a BAD APPLE!!"],
+    [32.5, "果てるまで　Bad Apple!!"],
+    [38.0, ""] ,
+    [42.0, "誰かが描いた　世界の中で"],
+    [47.5, "מנוな色彩　מנוな形"],
+    [53.0, "すべてを壊して　すべてを変えて"],
+    [58.5, "私は私で　あり続けるの"],
+    [64.0, ""] ,
+    [68.0, "ityEngineを　駆け抜ける　この身体"],
+    [73.5, "It's a BAD APPLE!!"],
+    [79.0, "果てるまで　Bad Apple!!"],
+    [84.5, "もう止まれない　Bad Apple!!"],
+    [90.0, ""] ,
+    [95.0, "掻き消えてく　幻の夢"],
+    [100.5, "ityEngineを　駆け抜ける　この身体"],
+    [106.0, "It's a BAD APPLE!!"],
+    [111.5, "果てるまで　Bad Apple!!"],
+    [117.0, "もう止まれない　Bad Apple!!"],
+    [123.0, ""],
 ];
 
-function getCurrentLyrics(frame) {
+function getCurrentLyrics(timeSec) {
     let text = "";
-    for (const [f, t] of LYRICS) {
-        if (frame >= f) text = t;
+    for (const [t, l] of LYRICS) {
+        if (timeSec >= t) text = l;
         else break;
     }
     return text;
@@ -303,7 +306,7 @@ function updateProgress() {
     document.getElementById('timeLabel').textContent = fmtTime(audio.currentTime) + ' / ' + fmtTime(audio.duration);
 }
 function fmtTime(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+(sec<10?'0':'')+sec; }
-function updateLyrics() { lyricsBar.textContent = getCurrentLyrics(currentFrame); }
+function updateLyrics() { lyricsBar.textContent = getCurrentLyrics(audio.currentTime || 0); }
 
 // ---- Controls ----
 const btnPause = document.getElementById('btnPause');
@@ -388,22 +391,25 @@ document.addEventListener('keydown', e => {
 });
 
 // Preload
+let preloadDone = false;
+function startPlayback() {
+    if (preloadDone) return;
+    preloadDone = true;
+    preloader.classList.add('hidden');
+    audio.play().catch(() => {});
+    isPlaying = true;
+    btnPause.textContent = '⏸';
+    lyricsBar.classList.add('show');
+    frameLoop();
+}
 audio.addEventListener('progress', () => {
-    if (audio.buffered.length > 0) {
+    if (audio.buffered.length > 0 && audio.duration) {
         preBar.style.width = (audio.buffered.end(audio.buffered.length - 1) / audio.duration * 100) + '%';
     }
 });
-audio.addEventListener('canplaythrough', () => {
-    preBar.style.width = '100%';
-    setTimeout(() => {
-        preloader.classList.add('hidden');
-        audio.play();
-        isPlaying = true;
-        btnPause.textContent = '⏸';
-        lyricsBar.classList.add('show');
-        frameLoop();
-    }, 500);
-}, { once: true });
+audio.addEventListener('canplaythrough', () => { preBar.style.width = '100%'; setTimeout(startPlayback, 400); }, { once: true });
+// Fallback: if canplaythrough never fires, start after 3s
+setTimeout(startPlayback, 3000);
 audio.addEventListener('ended', () => { audio.currentTime = 0; audio.play(); });
 
 // Danmaku
@@ -423,8 +429,13 @@ audio.addEventListener('ended', () => { audio.currentTime = 0; audio.play(); });
 })();
 
 // Init
-try { decodeFrames(); } catch(e) { document.getElementById('preloader').innerHTML = '<div style="color:#c0392b">Error: '+e.message+'</div>'; }
+try {
+    decodeFrames();
+    console.log('Frames decoded:', frameData.length);
+} catch(e) {
+    console.error('Decode error:', e);
+    document.getElementById('preloader').innerHTML = '<div style="color:#c0392b">Error: '+e.message+'</div>';
+}
 </script>
-<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 </body>
 </html>
