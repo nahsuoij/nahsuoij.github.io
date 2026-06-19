@@ -22,15 +22,15 @@
         .pre-err{color:#c0392b;font-size:.8rem;margin-top:1rem}
 
         /* Karaoke lyrics */
-        #karaokeBar{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:50;text-align:center;pointer-events:none;width:90%;max-width:800px}
-        .karaoke-line{font-size:1.2rem;letter-spacing:.15em;line-height:2.2;transition:opacity .3s}
+        #karaokeBar{position:fixed;bottom:55px;left:20px;z-index:50;text-align:left;pointer-events:none;max-width:60vw}
+        .karaoke-line{font-size:.75rem;letter-spacing:.08em;line-height:1.8;transition:opacity .3s}
         .karaoke-line.active{opacity:1}
         .karaoke-line.inactive{opacity:0}
-        .karaoke-line.waiting{opacity:.3}
-        .karaoke-line.prelude{opacity:.15}
-        .karaoke-word{display:inline-block;transition:color .15s, text-shadow .15s}
-        .karaoke-word.sung{color:#ffb7c5;text-shadow:0 0 12px rgba(255,183,197,.6)}
-        .karaoke-word.unsung{color:rgba(255,255,255,.25)}
+        .karaoke-line.waiting{opacity:.25}
+        .karaoke-line.prelude{opacity:.12}
+        .karaoke-word{display:inline-block;transition:color .12s,text-shadow .12s}
+        .karaoke-word.sung{color:#ffb7c5;text-shadow:0 0 8px rgba(255,183,197,.5)}
+        .karaoke-word.unsung{color:rgba(255,255,255,.2)}
 
         /* Controls */
         #controls{position:fixed;bottom:15px;left:20px;display:flex;align-items:center;gap:12px;z-index:50;opacity:0;transition:opacity .3s}
@@ -111,7 +111,7 @@
     <input type="file" id="fileInput" accept="image/*">
 </div>
 
-<div id="version">589e2e3</div>
+<div id="version">a54d842</div>
 
 <script src="pako.min.js?v=3"></script>
 <script src="frames.js?v=3"></script>
