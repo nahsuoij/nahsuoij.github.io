@@ -459,15 +459,32 @@ document.addEventListener('keydown', e => {
 decodeFrames();
 let started = false;
 let audioReady = false;
+let pendingPlay = false;
 function startPlay() {
     if (started) return;
     started = true;
     preloader.classList.add('done');
-    audio.play().then(() => { audioReady = true; }).catch(()=>{});
     isPlaying = true;
     btnPause.textContent = '⏸';
     frameLoop();
+    audio.play().then(() => {
+        audioReady = true;
+        pendingPlay = false;
+    }).catch(() => {
+        // Browser blocked autoplay — wait for user gesture
+        pendingPlay = true;
+        audioReady = true;
+    });
 }
+// Resume play on first user gesture if autoplay was blocked
+function resumeOnGesture() {
+    if (pendingPlay && audio.paused) {
+        audio.play().then(() => { pendingPlay = false; }).catch(()=>{});
+    }
+}
+document.addEventListener('click', resumeOnGesture, { once: true });
+document.addEventListener('keydown', resumeOnGesture, { once: true });
+document.addEventListener('touchstart', resumeOnGesture, { once: true });
 audio.addEventListener('progress', () => {
     if (audio.buffered.length > 0 && audio.duration)
         preBar.style.width = (audio.buffered.end(audio.buffered.length-1)/audio.duration*100)+'%';
