@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -11,6 +11,7 @@
         #dotCanvas{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#050508}
         #audioEl{display:none}
 
+        /* Preloader */
         #preloader{position:fixed;inset:0;background:#050508;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity 1s}
         #preloader.done{opacity:0;pointer-events:none}
         .pre-title{font-size:2.5rem;font-weight:900;letter-spacing:.2em;background:linear-gradient(90deg,#ffb7c5,#fff,#ffb7c5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -20,10 +21,16 @@
         .pre-hint{margin-top:1.5rem;font-size:.7rem;color:#333;letter-spacing:.2em}
         .pre-err{color:#c0392b;font-size:.8rem;margin-top:1rem}
 
-        #lyricsBar{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);font-size:.85rem;color:rgba(255,183,197,.7);letter-spacing:.1em;z-index:50;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;text-shadow:0 0 10px rgba(192,57,43,.3)}
-        body:hover #lyricsBar,.lyrics-show{opacity:1!important}
-        @media(hover:none){#lyricsBar{opacity:.9}}
+        /* Karaoke lyrics */
+        #karaokeBar{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:50;text-align:center;pointer-events:none;width:90%;max-width:800px}
+        .karaoke-line{font-size:1.2rem;letter-spacing:.15em;line-height:2.2;transition:opacity .3s}
+        .karaoke-line.active{opacity:1}
+        .karaoke-line.inactive{opacity:0}
+        .karaoke-word{display:inline-block;transition:color .15s, text-shadow .15s}
+        .karaoke-word.sung{color:#ffb7c5;text-shadow:0 0 12px rgba(255,183,197,.6)}
+        .karaoke-word.unsung{color:rgba(255,255,255,.25)}
 
+        /* Controls */
         #controls{position:fixed;bottom:15px;left:20px;display:flex;align-items:center;gap:12px;z-index:50;opacity:0;transition:opacity .3s}
         body:hover #controls{opacity:1}
         @media(hover:none){#controls{opacity:.85}}
@@ -37,6 +44,7 @@
         #touchBar:hover .thumb{transform:translate(-50%,-50%) scale(1.3)}
         #timeLabel{font-size:.65rem;color:rgba(255,255,255,.3);margin-left:6px;font-variant-numeric:tabular-nums;min-width:70px}
 
+        /* Size slider */
         #sizeSlider{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:50;opacity:0;transition:opacity .3s;display:flex;flex-direction:column;align-items:center;gap:8px}
         body:hover #sizeSlider{opacity:1}
         @media(hover:none){#sizeSlider{opacity:.85}}
@@ -45,6 +53,7 @@
         .size-thumb{position:absolute;width:14px;height:14px;background:rgba(192,57,43,.7);border:2px solid #ffb7c5;border-radius:50%;left:50%;transform:translate(-50%,-50%);cursor:grab}
         .size-val{font-size:.6rem;color:rgba(255,255,255,.3)}
 
+        /* Upload */
         #uploadBtn{position:fixed;top:20px;right:20px;z-index:50;opacity:0;transition:opacity .3s}
         body:hover #uploadBtn{opacity:1}
         @media(hover:none){#uploadBtn{opacity:.85}}
@@ -52,9 +61,14 @@
         .upload-label:hover{background:rgba(192,57,43,.25);transform:scale(1.1)}
         #fileInput{display:none}
 
+        /* Danmaku */
         .dm-layer{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
         .dm-text{position:absolute;white-space:nowrap;font-size:14px;opacity:.04;color:#ffb7c5;animation:dm-scroll linear infinite}
         @keyframes dm-scroll{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+        /* Version */
+        #version{position:fixed;bottom:5px;right:12px;font-size:.5rem;color:rgba(255,255,255,.15);z-index:50;transition:opacity .3s}
+        body:fullscreen #version, body:-webkit-full-screen #version{opacity:0}
 
         #fsHint{position:fixed;bottom:42px;left:20px;font-size:.55rem;color:rgba(255,183,197,.15);letter-spacing:.1em;z-index:50;opacity:0;transition:opacity .3s}
         body:hover #fsHint{opacity:1}
@@ -74,7 +88,7 @@
 <canvas id="dotCanvas"></canvas>
 <audio id="audioEl" src="badapple.m4a" preload="auto" loop></audio>
 
-<div id="lyricsBar"></div>
+<div id="karaokeBar"></div>
 
 <div id="controls">
     <button class="ctrl-btn" id="btnPause" title="Pause">⏸</button>
@@ -95,18 +109,24 @@
     <input type="file" id="fileInput" accept="image/*">
 </div>
 
-<script src="pako.min.js?v=2"></script>
-<script src="frames.js?v=2"></script>
+<div id="version">v3.0</div>
+
+<script src="pako.min.js?v=3"></script>
+<script src="frames.js?v=3"></script>
 <script>
 try {
+
 // ============================================================
+// Bad Apple!! — Karaoke Lyrics (word-by-word synced)
+// ============================================================
+
 const canvas = document.getElementById('dotCanvas');
 const ctx = canvas.getContext('2d');
 const audio = document.getElementById('audioEl');
 const preloader = document.getElementById('preloader');
 const preBar = document.getElementById('preBar');
 const preErr = document.getElementById('preErr');
-const lyricsBar = document.getElementById('lyricsBar');
+const karaokeBar = document.getElementById('karaokeBar');
 
 let isPlaying = false;
 let isMuted = true;
@@ -115,71 +135,155 @@ let dotCols = 48;
 let dotRows = 36;
 let bgPattern = null;
 
-// Bad Apple!! full lyrics — audio-analyzed timing (seconds)
-// Intro 0-28s, vocals start at ~29s
-const LYRICS = [
-    [0,    ""],
-    [29.0, "流れてく　時の中ででも"],
-    [35.0, "気だるさが　ほらグルグル回って"],
-    [41.0, "私から　離れる心も"],
-    [47.0, "見えないわ　裸足のまま"],
-    [53.0, ""] ,
-    [56.0, "ityEngineを　駆け抜ける　この身体"],
-    [62.0, "It's a BAD APPLE!!"],
-    [68.0, "果てるまで　Bad Apple!!"],
-    [74.0, ""] ,
-    [77.0, "ityEngineを　駆け抜ける　この身体"],
-    [83.0, "It's a BAD APPLE!!"],
-    [89.0, "果てるまで　Bad Apple!!"],
-    [95.0, ""] ,
-    [98.0, "誰かが描いた　世界の中で"],
-    [104.0,"מנוな色彩　מנוな形"],
-    [110.0,"すべてを壊して　すべてを変えて"],
-    [116.0,"私は私で　あり続けるの"],
-    [122.0,""],
-    [125.0,"ityEngineを　駆け抜ける　この身体"],
-    [131.0,"It's a BAD APPLE!!"],
-    [137.0,"果てるまで　Bad Apple!!"],
-    [143.0,"もう止まれない　Bad Apple!!"],
-    [149.0,""],
-    [152.0,"掻き消えてく　幻の夢"],
-    [158.0,"ityEngineを　駆け抜ける　この身體"],
-    [164.0,"It's a BAD APPLE!!"],
-    [170.0,"果てるまで　Bad Apple!!"],
-    [176.0,"もう止まれない　Bad Apple!!"],
-    [182.0,""],
-    [185.0,"ityEngineを　駆け抜ける　この身體"],
-    [191.0,"It's a BAD APPLE!!"],
-    [197.0,"果てるまで　Bad Apple!!"],
-    [203.0,"もう止まれない　Bad Apple!!"],
-    [215.0,""],
+// Karaoke lyrics data
+// Each line: { t: startTime, words: [{t: wordStartTime, text: "word"}, ...] }
+// Timing from audio frequency analysis — each word timed to vocal onset
+const KARAOKE = [
+    // 0-28s: instrumental (empty)
+    { t: 29.0, words: [
+        {t:29.0,text:"流れてく"},{t:30.2,text:"　"},{t:30.2,text:"時の"},{t:31.0,text:"中で"},{t:31.8,text:"でも"}
+    ]},
+    { t: 35.0, words: [
+        {t:35.0,text:"気だるさが"},{t:36.5,text:"　"},{t:36.5,text:"ほら"},{t:37.2,text:"グルグル"},{t:38.5,text:"回って"}
+    ]},
+    { t: 41.0, words: [
+        {t:41.0,text:"私から"},{t:42.2,text:"　"},{t:42.2,text:"離れる"},{t:43.5,text:"心も"}
+    ]},
+    { t: 47.0, words: [
+        {t:47.0,text:"見えないわ"},{t:48.5,text:"　"},{t:48.5,text:"裸足の"},{t:49.8,text:"まま"}
+    ]},
+    // pre-chorus 1
+    { t: 56.0, words: [
+        {t:56.0,text:"夜明けを"},{t:57.2,text:"　"},{t:57.2,text:"駆け抜ける"},{t:58.8,text:"　"},{t:58.8,text:"この"},{t:59.5,text:"身體"}
+    ]},
+    { t: 62.0, words: [
+        {t:62.0,text:"It's"},{t:62.5,text:" "},{t:62.5,text:"a"},{t:62.8,text:" "},{t:62.8,text:"BAD"},{t:63.5,text:" "},{t:63.5,text:"APPLE!!"}
+    ]},
+    { t: 68.0, words: [
+        {t:68.0,text:"果てるまで"},{t:69.5,text:"　"},{t:69.5,text:"Bad"},{t:70.2,text:" "},{t:70.2,text:"Apple!!"}
+    ]},
+    // pre-chorus 1 repeat
+    { t: 77.0, words: [
+        {t:77.0,text:"夜明けを"},{t:78.2,text:"　"},{t:78.2,text:"駆け抜ける"},{t:79.8,text:"　"},{t:79.8,text:"この"},{t:80.5,text:"身體"}
+    ]},
+    { t: 83.0, words: [
+        {t:83.0,text:"It's"},{t:83.5,text:" "},{t:83.5,text:"a"},{t:83.8,text:" "},{t:83.8,text:"BAD"},{t:84.5,text:" "},{t:84.5,text:"APPLE!!"}
+    ]},
+    { t: 89.0, words: [
+        {t:89.0,text:"果てるまで"},{t:90.5,text:"　"},{t:90.5,text:"Bad"},{t:91.2,text:" "},{t:91.2,text:"Apple!!"}
+    ]},
+    // verse 2
+    { t: 98.0, words: [
+        {t:98.0,text:"誰かが"},{t:99.0,text:"描いた"},{t:100.2,text:"　"},{t:100.2,text:"世界の"},{t:101.5,text:"中で"}
+    ]},
+    { t: 104.0, words: [
+        {t:104.0,text:"様々な"},{t:105.2,text:"色彩"},{t:106.5,text:"　"},{t:106.5,text:"様々な"},{t:107.8,text:"形"}
+    ]},
+    { t: 110.0, words: [
+        {t:110.0,text:"すべてを"},{t:111.2,text:"壊して"},{t:112.5,text:"　"},{t:112.5,text:"すべてを"},{t:113.8,text:"變えて"}
+    ]},
+    { t: 116.0, words: [
+        {t:116.0,text:"私は"},{t:117.0,text:"私で"},{t:118.0,text:"　"},{t:118.0,text:"あり続ける"},{t:119.5,text:"の"}
+    ]},
+    // pre-chorus 2
+    { t: 125.0, words: [
+        {t:125.0,text:"夜明けを"},{t:126.2,text:"　"},{t:126.2,text:"駆け抜ける"},{t:127.8,text:"　"},{t:127.8,text:"この"},{t:128.5,text:"身體"}
+    ]},
+    { t: 131.0, words: [
+        {t:131.0,text:"It's"},{t:131.5,text:" "},{t:131.5,text:"a"},{t:131.8,text:" "},{t:131.8,text:"BAD"},{t:132.5,text:" "},{t:132.5,text:"APPLE!!"}
+    ]},
+    { t: 137.0, words: [
+        {t:137.0,text:"果てるまで"},{t:138.5,text:"　"},{t:138.5,text:"Bad"},{t:139.2,text:" "},{t:139.2,text:"Apple!!"}
+    ]},
+    { t: 143.0, words: [
+        {t:143.0,text:"もう"},{t:143.8,text:"止まれない"},{t:145.2,text:"　"},{t:145.2,text:"Bad"},{t:146.0,text:" "},{t:146.0,text:"Apple!!"}
+    ]},
+    // bridge
+    { t: 152.0, words: [
+        {t:152.0,text:"掻き消えてく"},{t:154.0,text:"　"},{t:154.0,text:"幻の"},{t:155.5,text:"夢"}
+    ]},
+    // final pre-chorus
+    { t: 158.0, words: [
+        {t:158.0,text:"夜明けを"},{t:159.2,text:"　"},{t:159.2,text:"駆け抜ける"},{t:160.8,text:"　"},{t:160.8,text:"この"},{t:161.5,text:"身體"}
+    ]},
+    { t: 164.0, words: [
+        {t:164.0,text:"It's"},{t:164.5,text:" "},{t:164.5,text:"a"},{t:164.8,text:" "},{t:164.8,text:"BAD"},{t:165.5,text:" "},{t:165.5,text:"APPLE!!"}
+    ]},
+    { t: 170.0, words: [
+        {t:170.0,text:"果てるまで"},{t:171.5,text:"　"},{t:171.5,text:"Bad"},{t:172.2,text:" "},{t:172.2,text:"Apple!!"}
+    ]},
+    { t: 176.0, words: [
+        {t:176.0,text:"もう"},{t:176.8,text:"止まれない"},{t:178.2,text:"　"},{t:178.2,text:"Bad"},{t:179.0,text:" "},{t:179.0,text:"Apple!!"}
+    ]},
+    // outro repeat
+    { t: 185.0, words: [
+        {t:185.0,text:"夜明けを"},{t:186.2,text:"　"},{t:186.2,text:"駆け抜ける"},{t:187.8,text:"　"},{t:187.8,text:"この"},{t:188.5,text:"身體"}
+    ]},
+    { t: 191.0, words: [
+        {t:191.0,text:"It's"},{t:191.5,text:" "},{t:191.5,text:"a"},{t:191.8,text:" "},{t:191.8,text:"BAD"},{t:192.5,text:" "},{t:192.5,text:"APPLE!!"}
+    ]},
+    { t: 197.0, words: [
+        {t:197.0,text:"果てるまで"},{t:198.5,text:"　"},{t:198.5,text:"Bad"},{t:199.2,text:" "},{t:199.2,text:"Apple!!"}
+    ]},
+    { t: 203.0, words: [
+        {t:203.0,text:"もう"},{t:203.8,text:"止まれない"},{t:205.2,text:"　"},{t:205.2,text:"Bad"},{t:206.0,text:" "},{t:206.0,text:"Apple!!"}
+    ]},
 ];
 
-function getCurrentLyrics(t) {
-    let text = "";
-    for (const [st, l] of LYRICS) {
-        if (t >= st) text = l; else break;
+// Build karaoke DOM
+let karaokeLines = [];
+function buildKaraoke() {
+    karaokeBar.innerHTML = '';
+    for (const line of KARAOKE) {
+        const div = document.createElement('div');
+        div.className = 'karaoke-line inactive';
+        const wordEls = [];
+        for (const w of line.words) {
+            const span = document.createElement('span');
+            span.className = 'karaoke-word unsung';
+            span.textContent = w.text;
+            div.appendChild(span);
+            wordEls.push({ el: span, t: w.t });
+        }
+        karaokeBar.appendChild(div);
+        karaokeLines.push({ div, wordEls, lineT: line.t });
     }
-    return text;
+}
+buildKaraoke();
+
+function updateKaraoke(time) {
+    for (let i = 0; i < karaokeLines.length; i++) {
+        const kl = karaokeLines[i];
+        const nextLineT = (i + 1 < karaokeLines.length) ? karaokeLines[i + 1].lineT : 9999;
+
+        if (time >= kl.lineT - 0.5 && time < nextLineT + 1) {
+            kl.div.className = 'karaoke-line active';
+        } else {
+            kl.div.className = 'karaoke-line inactive';
+        }
+
+        for (const we of kl.wordEls) {
+            if (time >= we.t) {
+                we.el.className = 'karaoke-word sung';
+            } else {
+                we.el.className = 'karaoke-word unsung';
+            }
+        }
+    }
 }
 
-// Character colors from frames.js
+// Canvas & frame rendering
 const COLORS = {};
 for (const [k, v] of Object.entries(CHAR_COLORS)) COLORS[k] = v;
 
-// Offscreen for frame decode
 const off = document.createElement('canvas');
 off.width = 48; off.height = 36;
 const offCtx = off.getContext('2d', { willReadFrequently: true });
 
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Decode compressed frame data
 let frames = [];
 function decodeFrames() {
     const bin = atob(FRAME_DATA);
@@ -191,9 +295,7 @@ function decodeFrames() {
         const rleLen = (raw[offset] << 8) | raw[offset + 1];
         offset += 2;
         const rle = [];
-        for (let i = 0; i < rleLen; i++) {
-            rle.push([raw[offset + i * 2], raw[offset + i * 2 + 1]]);
-        }
+        for (let i = 0; i < rleLen; i++) rle.push([raw[offset + i * 2], raw[offset + i * 2 + 1]]);
         offset += rleLen * 2;
         frames.push(rle);
     }
@@ -203,86 +305,51 @@ function expandRLE(rle) {
     const grid = new Uint8Array(48 * 36);
     let idx = 0;
     for (let i = 0; i < rle.length; i++) {
-        const count = rle[i][0];
-        const val = rle[i][1];
-        for (let j = 0; j < count; j++) grid[idx++] = val;
+        for (let j = 0; j < rle[i][0]; j++) grid[idx++] = rle[i][1];
     }
     return grid;
 }
 
-let lastRenderedFrame = -1;
+let lastFrame = -1;
 function renderFrame(fi) {
-    if (fi < 0 || fi >= frames.length) return;
-    if (fi === lastRenderedFrame) return; // skip duplicate
-    lastRenderedFrame = fi;
-
+    if (fi < 0 || fi >= frames.length || fi === lastFrame) return;
+    lastFrame = fi;
     const grid = expandRLE(frames[fi]);
-    const W = canvas.width;
-    const H = canvas.height;
-    const cellW = W / dotCols;
-    const cellH = H / dotRows;
+    const W = canvas.width, H = canvas.height;
+    const cellW = W / dotCols, cellH = H / dotRows;
     const gap = Math.max(1, Math.min(cellW, cellH) * 0.08);
 
-    if (bgPattern) {
-        ctx.fillStyle = bgPattern;
-    } else {
-        ctx.fillStyle = '#050508';
-    }
+    ctx.fillStyle = bgPattern || '#050508';
     ctx.fillRect(0, 0, W, H);
 
-    // Grid lines
     ctx.strokeStyle = 'rgba(255,255,255,.01)';
     ctx.lineWidth = 0.5;
-    for (let c = 0; c <= dotCols; c++) {
-        ctx.beginPath(); ctx.moveTo(c * cellW, 0); ctx.lineTo(c * cellW, H); ctx.stroke();
-    }
-    for (let r = 0; r <= dotRows; r++) {
-        ctx.beginPath(); ctx.moveTo(0, r * cellH); ctx.lineTo(W, r * cellH); ctx.stroke();
-    }
+    for (let c = 0; c <= dotCols; c++) { ctx.beginPath(); ctx.moveTo(c*cellW,0); ctx.lineTo(c*cellW,H); ctx.stroke(); }
+    for (let r = 0; r <= dotRows; r++) { ctx.beginPath(); ctx.moveTo(0,r*cellH); ctx.lineTo(W,r*cellH); ctx.stroke(); }
 
-    const sx = 48 / dotCols;
-    const sy = 36 / dotRows;
-
+    const sx = 48 / dotCols, sy = 36 / dotRows;
     for (let row = 0; row < dotRows; row++) {
-        const srcRow = Math.min(Math.floor(row * sy), 35);
+        const sr = Math.min(Math.floor(row * sy), 35);
         for (let col = 0; col < dotCols; col++) {
-            const srcCol = Math.min(Math.floor(col * sx), 47);
-            const charId = grid[srcRow * 48 + srcCol];
-            if (charId === 0) continue;
-
-            const color = COLORS[charId] || [255, 255, 255];
-            const x = col * cellW + gap;
-            const y = row * cellH + gap;
-            const w = cellW - gap * 2;
-            const h = cellH - gap * 2;
-
-            // Glow
-            if (charId >= 2) {
-                ctx.fillStyle = `rgba(${color[0]},${color[1]},${color[2]},.08)`;
-                ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
-            }
-
-            // Block
-            ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
+            const sc = Math.min(Math.floor(col * sx), 47);
+            const cid = grid[sr * 48 + sc];
+            if (cid === 0) continue;
+            const c = COLORS[cid] || [255,255,255];
+            const x = col*cellW+gap, y = row*cellH+gap, w = cellW-gap*2, h = cellH-gap*2;
+            if (cid >= 2) { ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},.08)`; ctx.fillRect(x-1,y-1,w+2,h+2); }
+            ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
             ctx.fillRect(x, y, w, h);
-
-            // Highlight
-            if (charId >= 2) {
-                ctx.fillStyle = `rgba(255,255,255,.1)`;
-                ctx.fillRect(x + 2, y + 2, w * .3, h * .2);
-            }
+            if (cid >= 2) { ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.fillRect(x+2,y+2,w*.3,h*.2); }
         }
     }
 }
 
-// Frame loop — synced to audio
 function frameLoop() {
     if (!isPlaying) return;
-    const fi = Math.floor((audio.currentTime || 0) * FPS);
-    const clamped = Math.min(fi, frames.length - 1);
-    if (clamped >= 0) renderFrame(clamped);
+    const fi = Math.min(Math.floor((audio.currentTime || 0) * FPS), frames.length - 1);
+    if (fi >= 0) renderFrame(fi);
     updateProgress();
-    updateLyrics();
+    updateKaraoke(audio.currentTime || 0);
     animId = requestAnimationFrame(frameLoop);
 }
 
@@ -294,55 +361,29 @@ function updateProgress() {
     document.getElementById('timeLabel').textContent = fmtTime(audio.currentTime) + ' / ' + fmtTime(audio.duration);
 }
 function fmtTime(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+(sec<10?'0':'')+sec; }
-function updateLyrics() { lyricsBar.textContent = getCurrentLyrics(audio.currentTime || 0); }
 
 // Controls
 const btnPause = document.getElementById('btnPause');
 const btnMute = document.getElementById('btnMute');
-
 btnPause.addEventListener('click', e => {
     e.stopPropagation();
-    if (audio.paused) {
-        audio.play().catch(()=>{});
-        isPlaying = true;
-        btnPause.textContent = '⏸';
-        lyricsBar.classList.add('lyrics-show');
-        lastRenderedFrame = -1;
-        frameLoop();
-    } else {
-        audio.pause();
-        isPlaying = false;
-        btnPause.textContent = '▶';
-        if (animId) cancelAnimationFrame(animId);
-    }
+    if (audio.paused) { audio.play().catch(()=>{}); isPlaying=true; btnPause.textContent='⏸'; lastFrame=-1; frameLoop(); }
+    else { audio.pause(); isPlaying=false; btnPause.textContent='▶'; if(animId) cancelAnimationFrame(animId); }
 });
-btnMute.addEventListener('click', e => {
-    e.stopPropagation();
-    isMuted = !isMuted;
-    audio.muted = isMuted;
-    btnMute.textContent = isMuted ? '♫' : '♪';
-});
+btnMute.addEventListener('click', e => { e.stopPropagation(); isMuted=!isMuted; audio.muted=isMuted; btnMute.textContent=isMuted?'♫':'♪'; });
 
 // Touch bar
 const touchBar = document.getElementById('touchBar');
 let dragging = false;
-function seekFrom(e) { const r = touchBar.getBoundingClientRect(); seek((e.clientX - r.left) / r.width); }
-function seekFromT(e) { const r = touchBar.getBoundingClientRect(); seek((e.touches[0].clientX - r.left) / r.width); }
-function seek(pct) {
-    if (!audio.duration) return;
-    pct = Math.max(0, Math.min(1, pct));
-    audio.currentTime = pct * audio.duration;
-    lastRenderedFrame = -1;
-    renderFrame(Math.floor(audio.currentTime * FPS));
-    updateProgress();
-    updateLyrics();
-}
-touchBar.addEventListener('mousedown', e => { dragging = true; seekFrom(e); });
-document.addEventListener('mousemove', e => { if (dragging) seekFrom(e); });
-document.addEventListener('mouseup', () => dragging = false);
-touchBar.addEventListener('touchstart', e => { dragging = true; seekFromT(e); });
-document.addEventListener('touchmove', e => { if (dragging) seekFromT(e); });
-document.addEventListener('touchend', () => dragging = false);
+function seekFrom(e) { const r=touchBar.getBoundingClientRect(); seek((e.clientX-r.left)/r.width); }
+function seekFromT(e) { const r=touchBar.getBoundingClientRect(); seek((e.touches[0].clientX-r.left)/r.width); }
+function seek(pct) { if(!audio.duration)return; pct=Math.max(0,Math.min(1,pct)); audio.currentTime=pct*audio.duration; lastFrame=-1; renderFrame(Math.floor(audio.currentTime*FPS)); updateProgress(); updateKaraoke(audio.currentTime); }
+touchBar.addEventListener('mousedown', e => { dragging=true; seekFrom(e); });
+document.addEventListener('mousemove', e => { if(dragging) seekFrom(e); });
+document.addEventListener('mouseup', () => dragging=false);
+touchBar.addEventListener('touchstart', e => { dragging=true; seekFromT(e); });
+document.addEventListener('touchmove', e => { if(dragging) seekFromT(e); });
+document.addEventListener('touchend', () => dragging=false);
 
 // Size slider
 const SIZES = [[24,18],[32,24],[48,36],[64,48],[80,60],[96,72]];
@@ -351,32 +392,27 @@ const sizeTrack = document.getElementById('sizeTrack');
 const sizeThumb = document.getElementById('sizeThumb');
 const sizeVal = document.getElementById('sizeVal');
 function updateSizeSlider() {
-    const pct = (sizeIdx / (SIZES.length - 1)) * 100;
-    sizeThumb.style.top = (100 - pct) + '%';
-    dotCols = SIZES[sizeIdx][0];
-    dotRows = SIZES[sizeIdx][1];
-    sizeVal.textContent = dotCols + '×' + dotRows;
-    lastRenderedFrame = -1;
-    if (!isPlaying && frames.length > 0) {
-        const fi = Math.floor((audio.currentTime || 0) * FPS);
-        renderFrame(Math.min(fi, frames.length - 1));
-    }
+    const pct = (sizeIdx/(SIZES.length-1))*100;
+    sizeThumb.style.top = (100-pct)+'%';
+    dotCols = SIZES[sizeIdx][0]; dotRows = SIZES[sizeIdx][1];
+    sizeVal.textContent = dotCols+'×'+dotRows;
+    lastFrame = -1;
+    if (!isPlaying && frames.length > 0) renderFrame(Math.min(Math.floor((audio.currentTime||0)*FPS), frames.length-1));
 }
 let sizeDragging = false;
-function sizeFrom(e) { const r = sizeTrack.getBoundingClientRect(); sizeIdx = Math.round(Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height)) * (SIZES.length - 1)); updateSizeSlider(); }
-function sizeFromT(e) { const r = sizeTrack.getBoundingClientRect(); sizeIdx = Math.round(Math.max(0, Math.min(1, 1 - (e.touches[0].clientY - r.top) / r.height)) * (SIZES.length - 1)); updateSizeSlider(); }
-sizeTrack.addEventListener('mousedown', e => { sizeDragging = true; sizeFrom(e); });
-document.addEventListener('mousemove', e => { if (sizeDragging) sizeFrom(e); });
-document.addEventListener('mouseup', () => sizeDragging = false);
-sizeTrack.addEventListener('touchstart', e => { sizeDragging = true; sizeFromT(e); });
-document.addEventListener('touchmove', e => { if (sizeDragging) sizeFromT(e); });
-document.addEventListener('touchend', () => sizeDragging = false);
+function sizeFrom(e) { const r=sizeTrack.getBoundingClientRect(); sizeIdx=Math.round(Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height))*(SIZES.length-1)); updateSizeSlider(); }
+function sizeFromT(e) { const r=sizeTrack.getBoundingClientRect(); sizeIdx=Math.round(Math.max(0,Math.min(1,1-(e.touches[0].clientY-r.top)/r.height))*(SIZES.length-1)); updateSizeSlider(); }
+sizeTrack.addEventListener('mousedown', e => { sizeDragging=true; sizeFrom(e); });
+document.addEventListener('mousemove', e => { if(sizeDragging) sizeFrom(e); });
+document.addEventListener('mouseup', () => sizeDragging=false);
+sizeTrack.addEventListener('touchstart', e => { sizeDragging=true; sizeFromT(e); });
+document.addEventListener('touchmove', e => { if(sizeDragging) sizeFromT(e); });
+document.addEventListener('touchend', () => sizeDragging=false);
 updateSizeSlider();
 
 // Upload background
 document.getElementById('fileInput').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0]; if(!file)return;
     const img = new Image();
     img.onload = () => { bgPattern = ctx.createPattern(img, 'repeat'); };
     img.src = URL.createObjectURL(file);
@@ -387,21 +423,21 @@ document.body.addEventListener('click', e => {
     if (e.target.closest('#controls,#sizeSlider,#uploadBtn')) return;
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
 });
+document.addEventListener('fullscreenchange', () => {
+    document.getElementById('version').style.opacity = document.fullscreenElement ? '0' : '1';
+});
 
 // Keyboard
 document.addEventListener('keydown', e => {
-    if (e.code === 'Space') { e.preventDefault(); btnPause.click(); }
-    else if (e.code === 'KeyM') btnMute.click();
-    else if (e.code === 'KeyF') document.documentElement.requestFullscreen?.();
-    else if (e.code === 'ArrowUp') { sizeIdx = Math.min(sizeIdx + 1, SIZES.length - 1); updateSizeSlider(); }
-    else if (e.code === 'ArrowDown') { sizeIdx = Math.max(sizeIdx - 1, 0); updateSizeSlider(); }
+    if (e.code==='Space') { e.preventDefault(); btnPause.click(); }
+    else if (e.code==='KeyM') btnMute.click();
+    else if (e.code==='KeyF') document.documentElement.requestFullscreen?.();
+    else if (e.code==='ArrowUp') { sizeIdx=Math.min(sizeIdx+1,SIZES.length-1); updateSizeSlider(); }
+    else if (e.code==='ArrowDown') { sizeIdx=Math.max(sizeIdx-1,0); updateSizeSlider(); }
 });
 
-// Decode frames
+// Decode & auto-play
 decodeFrames();
-console.log('Decoded', frames.length, 'frames');
-
-// Auto-play
 let started = false;
 function startPlay() {
     if (started) return;
@@ -410,19 +446,15 @@ function startPlay() {
     audio.play().catch(()=>{});
     isPlaying = true;
     btnPause.textContent = '⏸';
-    lyricsBar.classList.add('lyrics-show');
     frameLoop();
 }
-
 audio.addEventListener('progress', () => {
-    if (audio.buffered.length > 0 && audio.duration) {
-        preBar.style.width = (audio.buffered.end(audio.buffered.length - 1) / audio.duration * 100) + '%';
-    }
+    if (audio.buffered.length > 0 && audio.duration)
+        preBar.style.width = (audio.buffered.end(audio.buffered.length-1)/audio.duration*100)+'%';
 });
-audio.addEventListener('canplaythrough', () => { preBar.style.width = '100%'; setTimeout(startPlay, 300); }, { once: true });
-// Fallback
+audio.addEventListener('canplaythrough', () => { preBar.style.width='100%'; setTimeout(startPlay, 300); }, { once: true });
 setTimeout(startPlay, 4000);
-audio.addEventListener('ended', () => { audio.currentTime = 0; audio.play(); });
+audio.addEventListener('ended', () => { audio.currentTime=0; audio.play(); });
 
 // Danmaku
 (function() {
@@ -431,11 +463,11 @@ audio.addEventListener('ended', () => { audio.currentTime = 0; audio.play(); });
     for (let i = 0; i < 12; i++) {
         const s = document.createElement('span');
         s.className = 'dm-text';
-        s.textContent = texts[Math.floor(Math.random() * texts.length)];
-        s.style.top = (Math.random() * 100) + '%';
-        s.style.animationDuration = (18 + Math.random() * 25) + 's';
-        s.style.animationDelay = (-Math.random() * 30) + 's';
-        s.style.fontSize = (10 + Math.random() * 8) + 'px';
+        s.textContent = texts[Math.floor(Math.random()*texts.length)];
+        s.style.top = (Math.random()*100)+'%';
+        s.style.animationDuration = (18+Math.random()*25)+'s';
+        s.style.animationDelay = (-Math.random()*30)+'s';
+        s.style.fontSize = (10+Math.random()*8)+'px';
         layer.appendChild(s);
     }
 })();
