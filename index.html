@@ -26,6 +26,7 @@
         .karaoke-line{font-size:1.2rem;letter-spacing:.15em;line-height:2.2;transition:opacity .3s}
         .karaoke-line.active{opacity:1}
         .karaoke-line.inactive{opacity:0}
+        .karaoke-line.waiting{opacity:.3}
         .karaoke-word{display:inline-block;transition:color .15s, text-shadow .15s}
         .karaoke-word.sung{color:#ffb7c5;text-shadow:0 0 12px rgba(255,183,197,.6)}
         .karaoke-word.unsung{color:rgba(255,255,255,.25)}
@@ -57,8 +58,8 @@
         #uploadBtn{position:fixed;top:20px;right:20px;z-index:50;opacity:0;transition:opacity .3s}
         body:hover #uploadBtn{opacity:1}
         @media(hover:none){#uploadBtn{opacity:.85}}
-        .upload-label{display:block;width:36px;height:36px;border:1.5px solid rgba(192,57,43,.5);border-radius:50%;background:rgba(10,10,16,.5);backdrop-filter:blur(6px);color:#ffb7c5;font-size:1rem;cursor:pointer;text-align:center;line-height:34px}
-        .upload-label:hover{background:rgba(192,57,43,.25);transform:scale(1.1)}
+        .upload-label{display:block;width:36px;height:36px;border:1px solid rgba(255,255,255,.1);border-radius:50%;background:rgba(255,255,255,.03);backdrop-filter:blur(4px);color:rgba(255,255,255,.3);font-size:.9rem;cursor:pointer;text-align:center;line-height:34px;opacity:.6}
+        .upload-label:hover{background:rgba(255,255,255,.08);opacity:1}
         #fileInput{display:none}
 
         /* Danmaku */
@@ -109,7 +110,7 @@
     <input type="file" id="fileInput" accept="image/*">
 </div>
 
-<div id="version">e966d52</div>
+<div id="version">6740f80</div>
 
 <script src="pako.min.js?v=3"></script>
 <script src="frames.js?v=3"></script>
@@ -256,8 +257,12 @@ function updateKaraoke(time) {
         const kl = karaokeLines[i];
         const nextLineT = (i + 1 < karaokeLines.length) ? karaokeLines[i + 1].lineT : 9999;
 
-        if (time >= kl.lineT - 0.5 && time < nextLineT + 1) {
-            kl.div.className = 'karaoke-line active';
+        if (time >= kl.lineT - 2 && time < nextLineT + 2) {
+            if (time >= kl.lineT) {
+                kl.div.className = 'karaoke-line active';
+            } else {
+                kl.div.className = 'karaoke-line waiting';
+            }
         } else {
             kl.div.className = 'karaoke-line inactive';
         }
