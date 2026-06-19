@@ -27,6 +27,7 @@
         .karaoke-line.active{opacity:1}
         .karaoke-line.inactive{opacity:0}
         .karaoke-line.waiting{opacity:.3}
+        .karaoke-line.prelude{opacity:.15}
         .karaoke-word{display:inline-block;transition:color .15s, text-shadow .15s}
         .karaoke-word.sung{color:#ffb7c5;text-shadow:0 0 12px rgba(255,183,197,.6)}
         .karaoke-word.unsung{color:rgba(255,255,255,.25)}
@@ -110,7 +111,7 @@
     <input type="file" id="fileInput" accept="image/*">
 </div>
 
-<div id="version">39d08e9</div>
+<div id="version">7488758</div>
 
 <script src="pako.min.js?v=3"></script>
 <script src="frames.js?v=3"></script>
@@ -253,6 +254,13 @@ function buildKaraoke() {
 buildKaraoke();
 
 function updateKaraoke(time) {
+    // Show first line dimly if audio hasn't started
+    if (!audioReady && karaokeLines.length > 0) {
+        karaokeLines[0].div.className = 'karaoke-line prelude';
+        for (const we of karaokeLines[0].wordEls) we.el.className = 'karaoke-word unsung';
+        for (let i = 1; i < karaokeLines.length; i++) karaokeLines[i].div.className = 'karaoke-line inactive';
+        return;
+    }
     for (let i = 0; i < karaokeLines.length; i++) {
         const kl = karaokeLines[i];
         const nextLineT = (i + 1 < karaokeLines.length) ? karaokeLines[i + 1].lineT : 9999;
@@ -423,9 +431,10 @@ document.getElementById('fileInput').addEventListener('change', e => {
     img.src = URL.createObjectURL(file);
 });
 
-// Fullscreen
+// Fullscreen on click + start audio if needed
 document.body.addEventListener('click', e => {
     if (e.target.closest('#controls,#sizeSlider,#uploadBtn')) return;
+    if (!audioReady) { startPlay(); return; }
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
 });
 document.addEventListener('fullscreenchange', () => {
@@ -444,11 +453,12 @@ document.addEventListener('keydown', e => {
 // Decode & auto-play
 decodeFrames();
 let started = false;
+let audioReady = false;
 function startPlay() {
     if (started) return;
     started = true;
     preloader.classList.add('done');
-    audio.play().catch(()=>{});
+    audio.play().then(() => { audioReady = true; }).catch(()=>{});
     isPlaying = true;
     btnPause.textContent = '⏸';
     frameLoop();
